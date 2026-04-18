@@ -164,8 +164,18 @@ export default function Calc() {
     if (!bond || !result) return;
     setPdfStatus('Generating PDF...');
     try {
-      const { default: jsPDF } = await import('jspdf');
-      const doc = new jsPDF.jsPDF('p', 'mm', 'a4');
+      // Load jsPDF from CDN if not already loaded
+      if (!window.jspdf) {
+        await new Promise((resolve, reject) => {
+          const script = document.createElement('script');
+          script.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+          script.onload = resolve;
+          script.onerror = reject;
+          document.head.appendChild(script);
+        });
+      }
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF('p', 'mm', 'a4');
       const W=210, ML=18, MR=18, CW=174;
       const sym = CCY_SYMBOLS[currency] || '$';
       const settle = parseDate(settleDate);
