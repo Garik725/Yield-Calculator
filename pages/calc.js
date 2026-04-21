@@ -2,13 +2,14 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import Head from 'next/head';
 import {
-  addBusinessDays, isoDate, fmtDate, parseDate, fullCalc, bracket, calcAccrued
+  addBusinessDays, isoDate, fmtDate, parseDate, fullCalc, bracket, calcAccrued,
+  ytmFromClean, cleanFromYtm
 } from '../lib/bondMath';
-
+ 
 // ── Currency config ────────────────────────────────────────────────────────────
 const CURRENCIES = ['USD', 'EUR', 'GBP', 'AMD'];
 const CCY_SYMBOLS = { USD: '$', EUR: '€', GBP: '£', AMD: '֏' };
-
+ 
 // ── Fallback bond database ─────────────────────────────────────────────────────
 const FALLBACK_DB = {
   "US91282CJM14": { name:"US Treasury Note 10Y", issuer:"US Treasury", coupon:4.250, maturity:"2035-02-15", freq:2, dc:"ACT/ACT", rating:"AAA", type:"Government", ccy:"USD" },
@@ -18,14 +19,13 @@ const FALLBACK_DB = {
   "US594918BW84": { name:"Microsoft 2.921% 2052",issuer:"Microsoft",   coupon:2.921, maturity:"2052-03-17", freq:2, dc:"30/360", rating:"AAA",type:"Corporate",   ccy:"USD" },
   "US88160RAJ13": { name:"Tesla 5.300% 2030",    issuer:"Tesla Inc.",  coupon:5.300, maturity:"2030-08-15", freq:2, dc:"30/360", rating:"BB", type:"Corporate",   ccy:"USD" },
   "US46647PBH22": { name:"JPMorgan 4.493% 2032", issuer:"JPMorgan",   coupon:4.493, maturity:"2032-03-24", freq:2, dc:"30/360", rating:"A+", type:"Corporate",   ccy:"USD" },
-  "XS0225685742": { name:"ARMEN 6.750% 2035",    issuer:"Rep. Armenia",coupon:6.750, maturity:"2035-03-12", freq:2, dc:"30/360", rating:"BB+",type:"Government", ccy:"USD" },
-  "XS2556972743": { name:"Converse Bank 7.5% 2027",issuer:"Converse Bank",coupon:7.500,maturity:"2027-04-14",freq:2,dc:"30/360",rating:"B+",type:"Corporate",   ccy:"USD" },
+ 
 };
-
+ 
 // ── Formatters ─────────────────────────────────────────────────────────────────
 const fmtMoney = (n, dp = 2) => n.toLocaleString('en-US', { minimumFractionDigits: dp, maximumFractionDigits: dp });
 const fmtFace  = n => n.toLocaleString('en-US');
-
+ 
 export default function Calc() {
   // Bond state
   const [bond, setBond] = useState(null);
@@ -36,7 +36,7 @@ export default function Calc() {
   const [manualMode, setManualMode] = useState(false);
   const [manualForm, setManualForm] = useState({ isin:'', name:'', issuer:'', coupon:'', maturity:'', freq:'2', dc:'30/360', ccy:'USD', rating:'—' });
   const [manualErrors, setManualErrors] = useState({});
-
+ 
   // Calc state
   const [side, setSide] = useState('BUY');
   const [settleDate, setSettleDate] = useState('');
@@ -48,16 +48,30 @@ export default function Calc() {
   const [lastEdited, setLastEdited] = useState('ytm');
   const [result, setResult] = useState(null);
   const [pdfStatus, setPdfStatus] = useState('');
-
+ 
+  // View state — 'calc' or 'pnl'
+  const [view, setView] = useState('calc');
+ 
+  // P&L Simulator state
+  const [pnlBuyDate, setPnlBuyDate] = useState('');
+  const [pnlSellDate, setPnlSellDate] = useState('');
+  const [pnlFace, setPnlFace] = useState('1,000,000');
+  const [pnlBuyMode, setPnlBuyMode] = useState('price');
+  const [pnlSellMode, setPnlSellMode] = useState('price');
+  const [pnlBuyValue, setPnlBuyValue] = useState('');
+  const [pnlSellValue, setPnlSellValue] = useState('');
+  const [pnlResult, setPnlResult] = useState(null);
+  const [pnlError, setPnlError] = useState('');
+ 
   const searchRef = useRef(null);
   const debounceRef = useRef(null);
-
+ 
   // Init settlement date T+2
   useEffect(() => {
     const t2 = addBusinessDays(new Date(), 2);
     setSettleDate(isoDate(t2));
   }, []);
-
+ 
   // Close dropdown on outside click
   useEffect(() => {
     const handler = e => {
@@ -66,15 +80,15 @@ export default function Calc() {
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
   }, []);
-
+ 
   // ── Search ──────────────────────────────────────────────────────────────────
   const handleIsinInput = useCallback((val) => {
     setIsinInput(val);
     setShowDrop(true);
     clearTimeout(debounceRef.current);
-
+ 
     if (val.length < 2) { setSearchResults([]); return; }
-
+ 
     // First check fallback DB
     const q = val.toLowerCase().replace(/\s/g, '');
     const local = Object.entries(FALLBACK_DB).filter(([isin, b]) =>
@@ -82,9 +96,9 @@ export default function Calc() {
       b.name.toLowerCase().replace(/\s/g,'').includes(q) ||
       b.issuer.toLowerCase().replace(/\s/g,'').includes(q)
     ).slice(0, 5).map(([isin, b]) => ({ ...b, isin, source: 'local' }));
-
+ 
     if (local.length > 0) setSearchResults(local);
-
+ 
     // Then fetch from API
     debounceRef.current = setTimeout(async () => {
       setSearching(true);
@@ -104,7 +118,7 @@ export default function Calc() {
       setSearching(false);
     }, 400);
   }, []);
-
+ 
   // ── Load bond ───────────────────────────────────────────────────────────────
   const loadBond = useCallback((b) => {
     setBond(b);
@@ -118,7 +132,7 @@ export default function Calc() {
     setResult(null);
     setManualMode(false);
   }, []);
-
+ 
   // ── Manual entry ────────────────────────────────────────────────────────────
   const submitManual = () => {
     const errs = {};
@@ -127,7 +141,7 @@ export default function Calc() {
     if (!manualForm.maturity) errs.maturity = 'Required';
     setManualErrors(errs);
     if (Object.keys(errs).length > 0) return;
-
+ 
     const b = {
       isin: manualForm.isin.toUpperCase().trim(),
       name: manualForm.name || manualForm.isin,
@@ -142,23 +156,23 @@ export default function Calc() {
     };
     loadBond(b);
   };
-
+ 
   // ── Recalculate ─────────────────────────────────────────────────────────────
   useEffect(() => {
     if (!bond || !settleDate) return;
     if (lastEdited === 'price' && !priceInput) return;
     if (lastEdited === 'ytm' && !ytmInput) return;
-
+ 
     const settle = parseDate(settleDate);
     const res = fullCalc(bond, settle, face, priceInput, ytmInput, lastEdited);
     if (!res) return;
     setResult(res);
-
+ 
     // Update the other field
     if (lastEdited === 'price') setYtmInput((res.ytm * 100).toFixed(5));
     else setPriceInput(res.cleanPx.toFixed(5));
   }, [bond, settleDate, face, priceInput, ytmInput, lastEdited]);
-
+ 
   // ── PDF Export ──────────────────────────────────────────────────────────────
   const exportPDF = async () => {
     if (!bond || !result) return;
@@ -181,7 +195,7 @@ export default function Calc() {
       const settle = parseDate(settleDate);
       const now = new Date();
       const ref = `YC-${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}-${Math.floor(Math.random()*9000+1000)}`;
-
+ 
       // Header
       doc.setFillColor(23,85,204); doc.rect(0,0,W,32,'F');
       doc.setFillColor(13,52,140); doc.rect(W-44,0,44,32,'F');
@@ -192,7 +206,7 @@ export default function Calc() {
       doc.text(now.toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'}), ML, 27);
       doc.setTextColor(255,255,255); doc.setFontSize(8); doc.setFont('helvetica','bold');
       doc.text(`REF: ${ref}`, W-ML, 19, {align:'right'});
-
+ 
       let y = 42;
       const row = (label, value, yy) => {
         doc.setTextColor(100,110,125); doc.setFontSize(8.5); doc.setFont('helvetica','normal');
@@ -209,7 +223,7 @@ export default function Calc() {
         doc.text(title, ML+3, yy+5.2);
         return yy+10;
       };
-
+ 
       y = secTitle('BOND DETAILS', y);
       y = row('ISIN', bond.isin, y);
       y = row('Name', bond.name, y);
@@ -219,7 +233,7 @@ export default function Calc() {
       y = row('Day Count', bond.dc, y);
       y = row('Currency', currency, y);
       y += 4;
-
+ 
       y = secTitle('TRADE DETAILS', y);
       y = row('Side', side, y);
       y = row('Settlement Date', fmtDate(settle), y);
@@ -228,12 +242,12 @@ export default function Calc() {
       y = row('Yield to Maturity', (result.ytm * 100).toFixed(5) + '%', y);
       y = row('Dirty Price', result.dirtyPx.toFixed(5) + ' per 100 face', y);
       y += 4;
-
+ 
       y = secTitle('SETTLEMENT INVOICE', y);
       y = row(`Principal (${result.cleanPx.toFixed(3)} × ${fmtFace(face/100)})`, sym + fmtMoney(result.principalAmt), y);
       y = row(`Accrued Interest (${result.days} days)`, sym + fmtMoney(result.aiAmt), y);
       y += 3;
-
+ 
       // Total box
       const isBuy = side === 'BUY';
       doc.setFillColor(...(isBuy ? [10,124,62] : [192,57,43]));
@@ -244,25 +258,164 @@ export default function Calc() {
       doc.setFontSize(16); doc.setFont('helvetica','bold');
       doc.text(sym + fmtMoney(result.totalAmt), W-MR-3, y+13, {align:'right'});
       y += 24;
-
+ 
       // Footer
       doc.setFillColor(240,238,234); doc.rect(0,272,W,25,'F');
       doc.setTextColor(150,155,165); doc.setFontSize(7); doc.setFont('helvetica','normal');
       doc.text('Yield Calculator — yieldcalculator.tech — hello@yieldcalculator.tech', ML, 279);
       doc.text('For informational purposes only. Not financial advice.', ML, 284);
       doc.text(`Ref: ${ref}`, W-MR, 284, {align:'right'});
-
+ 
       doc.save(`Settlement_${bond.isin}_${isoDate(now)}.pdf`);
       setPdfStatus(`✓ Exported — ${ref}`);
     } catch (e) {
       setPdfStatus('PDF error: ' + e.message);
     }
   };
-
+ 
+  // ── Render ───────────────────────────────────────────────────────────────────
+  // ── P&L Simulator ──────────────────────────────────────────────────────────
+  const pnlFmt = (n) => {
+    const ccy = currency || 'USD';
+    try { return n.toLocaleString('en-US', {style:'currency',currency:ccy,minimumFractionDigits:2,maximumFractionDigits:2}); }
+    catch { return `${CCY_SYMBOLS[ccy]||'$'}${n.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}`; }
+  };
+ 
+  const pnlAutoDerived = () => {
+    if (!bond || !pnlBuyDate || !pnlBuyValue) return '—';
+    try {
+      const buyD = parseDate(pnlBuyDate);
+      const v = parseFloat(pnlBuyValue);
+      if (isNaN(v)) return '—';
+      if (pnlBuyMode === 'price') {
+        const y = ytmFromClean(v, bond, buyD) * 100;
+        return y.toFixed(4) + '% YTM';
+      } else {
+        const px = cleanFromYtm(v/100, bond, buyD);
+        return px.toFixed(4) + ' price';
+      }
+    } catch { return '—'; }
+  };
+ 
+  const switchToPnL = () => {
+    if (bond) {
+      // Pre-fill only on first visit (if fields are empty — preserve user edits)
+      if (!pnlBuyDate) {
+        const buyDate = settleDate || isoDate(addBusinessDays(new Date(), 2));
+        setPnlBuyDate(buyDate);
+      }
+      if (!pnlSellDate) {
+        const bd = parseDate(pnlBuyDate || settleDate || isoDate(addBusinessDays(new Date(), 2)));
+        let sd = new Date(bd); sd.setFullYear(sd.getFullYear()+1);
+        const md = new Date(bond.maturity+'T12:00:00');
+        if (sd >= md) { sd = new Date(md); sd.setDate(sd.getDate()-1); }
+        setPnlSellDate(isoDate(sd));
+      }
+      if (pnlFace === '1,000,000' && face !== 1000000) {
+        setPnlFace(fmtFace(face));
+      }
+      if (!pnlBuyValue) {
+        if (lastEdited === 'price' && priceInput) {
+          setPnlBuyMode('price');
+          setPnlBuyValue(parseFloat(priceInput).toFixed(4));
+        } else if (ytmInput) {
+          setPnlBuyMode('ytm');
+          setPnlBuyValue(parseFloat(ytmInput).toFixed(4));
+        } else if (priceInput) {
+          setPnlBuyMode('price');
+          setPnlBuyValue(parseFloat(priceInput).toFixed(4));
+        }
+      }
+    }
+    setView('pnl');
+    window.scrollTo({top: 0, behavior: 'smooth'});
+  };
+ 
+  const switchToCalc = () => {
+    setView('calc');
+    window.scrollTo({top: 0, behavior: 'smooth'});
+  };
+ 
+  const calculatePnL = () => {
+    setPnlError('');
+    try {
+      if (!bond) throw new Error('Load a bond first.');
+      const faceNum = parseFloat(String(pnlFace).replace(/,/g,''));
+      if (isNaN(faceNum) || faceNum <= 0) throw new Error('Enter a valid face value.');
+      if (!pnlBuyDate || !pnlSellDate) throw new Error('Enter both purchase and sale dates.');
+      const buyD = parseDate(pnlBuyDate);
+      const sellD = parseDate(pnlSellDate);
+      const matD = new Date(bond.maturity + 'T12:00:00');
+      if (buyD >= sellD) throw new Error('Sale date must be after purchase date.');
+      if (sellD > matD) throw new Error('Sale date must be on or before maturity.');
+      if (buyD >= matD) throw new Error('Purchase date must be before maturity.');
+      const buyRaw = parseFloat(pnlBuyValue);
+      const sellRaw = parseFloat(pnlSellValue);
+      if (isNaN(buyRaw) || isNaN(sellRaw)) throw new Error('Enter valid purchase and sale values.');
+ 
+      // Derive yield + clean price for both legs
+      let buyY, buyCleanPx;
+      if (pnlBuyMode === 'price') {
+        buyCleanPx = buyRaw;
+        buyY = ytmFromClean(buyCleanPx, bond, buyD);
+      } else {
+        buyY = buyRaw / 100;
+        buyCleanPx = cleanFromYtm(buyY, bond, buyD);
+      }
+      let sellY, sellCleanPx;
+      if (pnlSellMode === 'price') {
+        sellCleanPx = sellRaw;
+        sellY = ytmFromClean(sellCleanPx, bond, sellD);
+      } else {
+        sellY = sellRaw / 100;
+        sellCleanPx = cleanFromYtm(sellY, bond, sellD);
+      }
+ 
+      // Accrued at each leg
+      const buyBr = bracket(bond.maturity, bond.freq, buyD);
+      const sellBr = bracket(bond.maturity, bond.freq, sellD);
+      const buyAcc = calcAccrued(bond, buyBr.last, buyBr.next, buyD).ai;
+      const sellAcc = calcAccrued(bond, sellBr.last, sellBr.next, sellD).ai;
+ 
+      const buyInvoice = (buyCleanPx + buyAcc) * faceNum / 100;
+      const sellInvoice = (sellCleanPx + sellAcc) * faceNum / 100;
+ 
+      // Coupons received between buy and sell
+      const couponsPerPayment = bond.coupon / 100 * faceNum / bond.freq;
+      const intervalMonths = 12 / bond.freq;
+      let d = new Date(matD);
+      let couponCount = 0;
+      while (d > buyD) {
+        if (d > buyD && d <= sellD) couponCount++;
+        d = new Date(d); d.setMonth(d.getMonth() - intervalMonths);
+      }
+      const couponsReceived = couponCount * couponsPerPayment;
+ 
+      // Repriced entry — at original buy yield, settled on sale date
+      const repricedCleanPx = cleanFromYtm(buyY, bond, sellD);
+      const repricedInvoice = (repricedCleanPx + sellAcc) * faceNum / 100;
+ 
+      const carryPL = repricedInvoice - buyInvoice + couponsReceived;
+      const marketPL = sellInvoice - repricedInvoice;
+      const totalRevenue = sellInvoice - buyInvoice + couponsReceived;
+      const totalPct = (totalRevenue / buyInvoice) * 100;
+      const holdingDays = Math.round((sellD - buyD) / 86400000);
+ 
+      setPnlResult({
+        totalRevenue, totalPct, carryPL, marketPL,
+        buyInvoice, sellInvoice, couponsReceived, repricedInvoice,
+        buyY, buyCleanPx, sellY, sellCleanPx, holdingDays,
+      });
+    } catch (e) {
+      setPnlError(e.message);
+      setPnlResult(null);
+    }
+  };
+ 
   // ── Render ───────────────────────────────────────────────────────────────────
   const settle = settleDate ? parseDate(settleDate) : null;
   const sym = CCY_SYMBOLS[currency] || '$';
-
+ 
   return (
     <>
       <Head>
@@ -270,7 +423,7 @@ export default function Calc() {
         <meta name="description" content="Professional bond settlement calculator. ISIN search, price/yield, settlement invoice, PDF export."/>
         <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet"/>
       </Head>
-
+ 
       <style>{`
         :root{--bg:#F4F2EE;--surface:#fff;--card:#fff;--border:#E2DDD6;--border2:#D4CFC7;--text:#0F1923;--text2:#4A5568;--text3:#9AA3AF;--blue:#1755CC;--blue-dim:#EBF1FF;--green:#0A7C3E;--green-dim:#E6F5EE;--red:#C0392B;--red-dim:#FDECEA;--gold:#8A6200;--gold-dim:#FEF7E6;--mono:'IBM Plex Mono',monospace;--sans:'IBM Plex Sans',sans-serif;}
         *{box-sizing:border-box;margin:0;padding:0;}
@@ -379,7 +532,7 @@ export default function Calc() {
         .ccy-btn.on{background:var(--blue);color:#fff;border-color:var(--blue);}
         @media(max-width:600px){.row{flex-direction:column;}.or-sep{padding:0;}.mp-grid{grid-template-columns:1fr 1fr;}.mp-grid-2{grid-template-columns:1fr;}.info-bar{flex-wrap:wrap;}.ib-cell{min-width:50%;}}
       `}</style>
-
+ 
       {/* TOPBAR */}
       <div className="topbar">
         <div className="logo">
@@ -428,11 +581,23 @@ export default function Calc() {
             <button key={c} className={`ccy-btn${currency===c?' on':''}`} onClick={() => setCurrency(c)}>{c}</button>
           ))}
         </div>
+        {view === 'calc' ? (
+          <button onClick={switchToPnL} style={{display:'flex',alignItems:'center',gap:7,padding:'8px 16px',background:'transparent',color:'var(--blue)',border:'1.5px solid var(--blue)',borderRadius:8,fontSize:12.5,fontWeight:700,cursor:'pointer',whiteSpace:'nowrap'}}>
+            <span style={{fontSize:14}}>⇄</span> P&amp;L Simulator
+          </button>
+        ) : (
+          <button onClick={switchToCalc} style={{display:'flex',alignItems:'center',gap:7,padding:'8px 16px',background:'transparent',color:'var(--blue)',border:'1.5px solid var(--blue)',borderRadius:8,fontSize:12.5,fontWeight:700,cursor:'pointer',whiteSpace:'nowrap'}}>
+            <span style={{fontSize:14}}>←</span> Settlement
+          </button>
+        )}
         <Clock />
       </div>
-
+ 
       <div className="main">
-
+ 
+        {view === 'calc' && (
+        <>
+ 
         {/* MANUAL ENTRY PANEL */}
         {manualMode && (
           <div className="manual-panel">
@@ -492,7 +657,7 @@ export default function Calc() {
             <button className="btn-cancel" onClick={() => setManualMode(false)}>Cancel</button>
           </div>
         )}
-
+ 
         {/* EMPTY STATE */}
         {!bond && !manualMode && (
           <div className="empty">
@@ -506,7 +671,7 @@ export default function Calc() {
             </div>
           </div>
         )}
-
+ 
         {/* CALCULATOR */}
         {bond && !manualMode && (
           <>
@@ -530,7 +695,7 @@ export default function Calc() {
                 </div>
               </div>
             </div>
-
+ 
             {/* Inputs */}
             <div className="card">
               <div className="bs-toggle">
@@ -582,7 +747,7 @@ export default function Calc() {
                 </div>
               </div>
             </div>
-
+ 
             {/* Info Bar */}
             {result && (
               <div className="info-bar">
@@ -613,7 +778,7 @@ export default function Calc() {
                 </div>
               </div>
             )}
-
+ 
             {/* Settlement Invoice */}
             {result && settle && (
               <div className="settle-box">
@@ -653,7 +818,7 @@ export default function Calc() {
                 </div>
               </div>
             )}
-
+ 
             {/* Export */}
             {result && (
               <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',flexWrap:'wrap',gap:10}}>
@@ -665,11 +830,164 @@ export default function Calc() {
             )}
           </>
         )}
+ 
+        </>
+        )}
+ 
+        {/* P&L PAGE VIEW - empty state */}
+        {view === 'pnl' && !bond && (
+          <div style={{textAlign:'center',padding:'80px 20px'}}>
+            <div style={{fontSize:40,opacity:0.15,marginBottom:14}}>⇄</div>
+            <div style={{fontSize:18,fontWeight:600,color:'var(--text2)',marginBottom:8}}>Round-Trip P&amp;L Simulator</div>
+            <div style={{fontSize:13,color:'var(--text3)',marginBottom:24,maxWidth:440,marginLeft:'auto',marginRight:'auto',lineHeight:1.65}}>
+              Calculate total revenue on a bond trade — split into Carry P&amp;L (income from holding) and Market Move P&amp;L (gain/loss from yield changes).
+            </div>
+            <div style={{fontSize:13,color:'var(--text2)'}}>Load a bond first, then return to this page.</div>
+            <button onClick={switchToCalc} style={{marginTop:18,padding:'10px 22px',background:'var(--blue)',color:'#fff',border:'none',borderRadius:8,fontSize:13,fontWeight:700,cursor:'pointer'}}>Go to Settlement Calculator</button>
+          </div>
+        )}
+ 
+        {/* P&L PAGE VIEW - active */}
+        {view === 'pnl' && bond && (
+          <>
+            {/* Bond info strip */}
+            <div className="card" style={{marginBottom:14}}>
+              <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',flexWrap:'wrap',gap:12}}>
+                <div>
+                  <div style={{fontSize:10,fontFamily:'var(--mono)',color:'var(--blue)',letterSpacing:'.8px',marginBottom:3}}>{bond.isin}</div>
+                  <div style={{fontSize:17,fontWeight:700}}>{bond.name}</div>
+                </div>
+                <div style={{display:'flex',gap:16,flexWrap:'wrap'}}>
+                  <div style={{textAlign:'right'}}><div style={{fontSize:9.5,color:'var(--text3)',textTransform:'uppercase',letterSpacing:'.4px'}}>Coupon</div><div style={{fontSize:13,fontFamily:'var(--mono)',fontWeight:500}}>{bond.coupon?.toFixed(3)}%</div></div>
+                  <div style={{textAlign:'right'}}><div style={{fontSize:9.5,color:'var(--text3)',textTransform:'uppercase',letterSpacing:'.4px'}}>Maturity</div><div style={{fontSize:13,fontFamily:'var(--mono)',fontWeight:500}}>{bond.maturity}</div></div>
+                  <div style={{textAlign:'right'}}><div style={{fontSize:9.5,color:'var(--text3)',textTransform:'uppercase',letterSpacing:'.4px'}}>Day Count</div><div style={{fontSize:13,fontFamily:'var(--mono)',fontWeight:500}}>{bond.dc}</div></div>
+                </div>
+              </div>
+            </div>
+            <div className="card">
+              <div>
+ 
+                {/* PURCHASE LEG */}
+                <div style={{marginBottom:18}}>
+                  <div style={{fontSize:10.5,fontWeight:700,letterSpacing:'1.2px',textTransform:'uppercase',color:'var(--blue)',marginBottom:10}}>1. When You Bought It</div>
+                  <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}>
+                    <div>
+                      <div className="fl">Purchase Date</div>
+                      <input type="date" className="fi" value={pnlBuyDate} onChange={e => setPnlBuyDate(e.target.value)}/>
+                    </div>
+                    <div>
+                      <div className="fl">Face Value</div>
+                      <input type="text" className="fi" value={pnlFace} onChange={e => setPnlFace(e.target.value)}/>
+                    </div>
+                  </div>
+                  <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,marginTop:10}}>
+                    <div>
+                      <div className="fl" style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+                        <span>Purchase</span>
+                        <div style={{display:'flex',gap:2,background:'#F2F0EC',borderRadius:5,padding:2}}>
+                          <button onClick={() => setPnlBuyMode('price')} style={{padding:'3px 9px',border:'none',background:pnlBuyMode==='price'?'var(--surface)':'transparent',color:pnlBuyMode==='price'?'var(--blue)':'var(--text3)',fontSize:10,fontWeight:pnlBuyMode==='price'?700:600,borderRadius:3,cursor:'pointer',boxShadow:pnlBuyMode==='price'?'0 1px 2px rgba(0,0,0,.08)':'none'}}>PRICE</button>
+                          <button onClick={() => setPnlBuyMode('ytm')} style={{padding:'3px 9px',border:'none',background:pnlBuyMode==='ytm'?'var(--surface)':'transparent',color:pnlBuyMode==='ytm'?'var(--blue)':'var(--text3)',fontSize:10,fontWeight:pnlBuyMode==='ytm'?700:600,borderRadius:3,cursor:'pointer',boxShadow:pnlBuyMode==='ytm'?'0 1px 2px rgba(0,0,0,.08)':'none'}}>YIELD</button>
+                        </div>
+                      </div>
+                      <input type="number" className="fi" value={pnlBuyValue} onChange={e => setPnlBuyValue(e.target.value)} step="0.001" placeholder={pnlBuyMode==='price'?'e.g. 98.50':'e.g. 5.00'}/>
+                      <div style={{fontSize:10,color:'var(--text3)',marginTop:3}}>{pnlBuyMode==='price'?'Clean price per 100 face':'Yield to maturity (%)'}</div>
+                    </div>
+                    <div>
+                      <div className="fl">Auto-derived</div>
+                      <div style={{padding:'9px 11px',background:'var(--gold-dim)',border:'1.5px solid var(--gold)',borderRadius:7,fontSize:13,fontFamily:'var(--mono)',color:'var(--gold)'}}>{pnlAutoDerived()}</div>
+                      <div style={{fontSize:10,color:'var(--text3)',marginTop:3}}>Other side of purchase</div>
+                    </div>
+                  </div>
+                </div>
+ 
+                {/* SALE LEG */}
+                <div style={{marginBottom:18}}>
+                  <div style={{fontSize:10.5,fontWeight:700,letterSpacing:'1.2px',textTransform:'uppercase',color:'var(--green)',marginBottom:10}}>2. When You Sell It (Simulated)</div>
+                  <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}>
+                    <div>
+                      <div className="fl">Sale Date</div>
+                      <input type="date" className="fi" value={pnlSellDate} onChange={e => setPnlSellDate(e.target.value)}/>
+                    </div>
+                    <div>
+                      <div className="fl" style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+                        <span>Sale</span>
+                        <div style={{display:'flex',gap:2,background:'#F2F0EC',borderRadius:5,padding:2}}>
+                          <button onClick={() => setPnlSellMode('price')} style={{padding:'3px 9px',border:'none',background:pnlSellMode==='price'?'var(--surface)':'transparent',color:pnlSellMode==='price'?'var(--blue)':'var(--text3)',fontSize:10,fontWeight:pnlSellMode==='price'?700:600,borderRadius:3,cursor:'pointer',boxShadow:pnlSellMode==='price'?'0 1px 2px rgba(0,0,0,.08)':'none'}}>PRICE</button>
+                          <button onClick={() => setPnlSellMode('ytm')} style={{padding:'3px 9px',border:'none',background:pnlSellMode==='ytm'?'var(--surface)':'transparent',color:pnlSellMode==='ytm'?'var(--blue)':'var(--text3)',fontSize:10,fontWeight:pnlSellMode==='ytm'?700:600,borderRadius:3,cursor:'pointer',boxShadow:pnlSellMode==='ytm'?'0 1px 2px rgba(0,0,0,.08)':'none'}}>YIELD</button>
+                        </div>
+                      </div>
+                      <input type="number" className="fi" value={pnlSellValue} onChange={e => setPnlSellValue(e.target.value)} step="0.001" placeholder={pnlSellMode==='price'?'e.g. 101.25':'e.g. 4.00'}/>
+                      <div style={{fontSize:10,color:'var(--text3)',marginTop:3}}>{pnlSellMode==='price'?'Clean price per 100 face':'Yield to maturity (%)'}</div>
+                    </div>
+                  </div>
+                </div>
+ 
+                <button onClick={calculatePnL} style={{width:'100%',padding:13,background:'var(--blue)',color:'#fff',border:'none',borderRadius:9,fontSize:14,fontWeight:700,cursor:'pointer',marginBottom:16}}>Calculate Total Revenue</button>
+ 
+                {pnlError && <div style={{background:'var(--red-dim)',color:'var(--red)',padding:'11px 13px',borderRadius:7,fontSize:12.5,marginBottom:12}}>{pnlError}</div>}
+ 
+                {pnlResult && (
+                  <div>
+                    <div style={{background:'linear-gradient(135deg,#F0F9FF,#E0F2FE)',border:'1px solid #BAE6FD',borderRadius:10,padding:20}}>
+                      <div style={{fontSize:10,textTransform:'uppercase',letterSpacing:'1.2px',color:'var(--text2)',fontWeight:700}}>Total Revenue</div>
+                      <div style={{fontSize:32,fontWeight:800,letterSpacing:'-.5px',margin:'4px 0 2px',fontFamily:'var(--mono)',color:pnlResult.totalRevenue>0.005?'var(--green)':(pnlResult.totalRevenue<-0.005?'var(--red)':'var(--text)')}}>
+                        {pnlResult.totalRevenue>=0?'+':''}{pnlFmt(pnlResult.totalRevenue)}
+                      </div>
+                      <div style={{fontSize:12,color:'var(--text2)'}}>Return on invested capital: {pnlResult.totalPct>=0?'+':''}{pnlResult.totalPct.toFixed(3)}% over {pnlResult.holdingDays} days</div>
+ 
+                      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,marginTop:18}}>
+                        <div style={{background:'var(--surface)',padding:'13px 15px',borderRadius:8,borderLeft:'4px solid var(--blue)'}}>
+                          <div style={{fontSize:9.5,textTransform:'uppercase',color:'var(--text3)',fontWeight:700,letterSpacing:'.5px'}}>Carry P&amp;L</div>
+                          <div style={{fontSize:17,fontWeight:700,marginTop:3,fontFamily:'var(--mono)',color:pnlResult.carryPL>0.005?'var(--green)':(pnlResult.carryPL<-0.005?'var(--red)':'var(--text)')}}>
+                            {pnlResult.carryPL>=0?'+':''}{pnlFmt(pnlResult.carryPL)}
+                          </div>
+                          <div style={{fontSize:10,color:'var(--text3)',marginTop:2}}>Income from holding</div>
+                        </div>
+                        <div style={{background:'var(--surface)',padding:'13px 15px',borderRadius:8,borderLeft:'4px solid #D97706'}}>
+                          <div style={{fontSize:9.5,textTransform:'uppercase',color:'var(--text3)',fontWeight:700,letterSpacing:'.5px'}}>Market Move P&amp;L</div>
+                          <div style={{fontSize:17,fontWeight:700,marginTop:3,fontFamily:'var(--mono)',color:pnlResult.marketPL>0.005?'var(--green)':(pnlResult.marketPL<-0.005?'var(--red)':'var(--text)')}}>
+                            {pnlResult.marketPL>=0?'+':''}{pnlFmt(pnlResult.marketPL)}
+                          </div>
+                          <div style={{fontSize:10,color:'var(--text3)',marginTop:2}}>Gain / loss from yields</div>
+                        </div>
+                      </div>
+ 
+                      <details style={{marginTop:14,background:'var(--surface)',borderRadius:7,border:'1px solid var(--border)'}}>
+                        <summary style={{padding:'10px 14px',cursor:'pointer',fontWeight:600,fontSize:12,color:'var(--text2)'}}>Show detailed breakdown</summary>
+                        <div style={{padding:'10px 14px',fontSize:12}}>
+                          {[
+                            ['Purchase Invoice (clean + accrued)', pnlFmt(pnlResult.buyInvoice)],
+                            ['Sale Invoice (clean + accrued)', pnlFmt(pnlResult.sellInvoice)],
+                            ['Coupons received during holding', pnlFmt(pnlResult.couponsReceived), 'var(--green)'],
+                            ['Repriced entry (at original yield, to sale date)', pnlFmt(pnlResult.repricedInvoice)],
+                            null,
+                            ['Purchase yield (YTM)', (pnlResult.buyY*100).toFixed(4)+'%'],
+                            ['Purchase clean price', pnlResult.buyCleanPx.toFixed(4)],
+                            ['Sale yield (YTM)', (pnlResult.sellY*100).toFixed(4)+'%'],
+                            ['Sale clean price', pnlResult.sellCleanPx.toFixed(4)],
+                            ['Holding period', pnlResult.holdingDays+' days'],
+                          ].map((row, i) => row===null ? <div key={i} style={{height:6}}/> : (
+                            <div key={i} style={{display:'flex',justifyContent:'space-between',padding:'5px 0',borderBottom:'1px solid var(--border)'}}>
+                              <span style={{color:'var(--text2)'}}>{row[0]}</span>
+                              <span style={{fontFamily:'var(--mono)',fontWeight:600,color:row[2]||'inherit'}}>{row[1]}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </details>
+                    </div>
+                    <div style={{marginTop:10,fontSize:11,color:'var(--text3)',textAlign:'center',fontStyle:'italic'}}>Revenue is gross. Financing costs, taxes, brokerage, and FX hedging not included.</div>
+                  </div>
+                )}
+ 
+              </div>
+            </div>
+          </>
+        )}
       </div>
     </>
   );
 }
-
+ 
 function Clock() {
   const [time, setTime] = useState('');
   useEffect(() => {
