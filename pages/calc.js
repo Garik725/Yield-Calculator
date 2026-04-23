@@ -1,6 +1,7 @@
 // pages/calc.js
 import { useState, useEffect, useRef, useCallback } from 'react';
 import Head from 'next/head';
+import Link from 'next/link';
 import {
   addBusinessDays, isoDate, fmtDate, parseDate, fullCalc, bracket, calcAccrued,
   ytmFromClean, cleanFromYtm
@@ -429,7 +430,15 @@ export default function Calc() {
         *{box-sizing:border-box;margin:0;padding:0;}
         body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:100vh;}
         input,select,button{font-family:var(--sans);}
-        .topbar{display:flex;align-items:center;gap:14px;padding:0 22px;height:52px;background:var(--surface);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:100;box-shadow:0 1px 4px rgba(0,0,0,.05);}
+        .platform-nav{background:#0F1923;border-bottom:1px solid #000;position:sticky;top:0;z-index:101;}
+        .pn-inner{max-width:1400px;margin:0 auto;padding:0 22px;height:36px;display:flex;align-items:center;gap:28px;}
+        .pn-brand{font-family:var(--sans);font-size:11.5px;font-weight:600;letter-spacing:.05em;color:rgba(255,255,255,.7);text-decoration:none;transition:color .15s;}
+        .pn-brand:hover{color:#fff;}
+        .pn-modules{display:flex;gap:0;margin-left:auto;}
+        .pn-mod{padding:0 18px;height:36px;display:flex;align-items:center;font-family:var(--sans);font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:rgba(255,255,255,.55);text-decoration:none;border-bottom:2px solid transparent;transition:all .15s;}
+        .pn-mod:hover{color:#fff;}
+        .pn-mod.active{color:#fff;border-bottom-color:#C0392B;}
+        .topbar{display:flex;align-items:center;gap:14px;padding:0 22px;height:52px;background:var(--surface);border-bottom:1px solid var(--border);position:sticky;top:36px;z-index:100;box-shadow:0 1px 4px rgba(0,0,0,.05);}
         .logo{display:flex;align-items:center;gap:8px;}
         .logo-sq{width:28px;height:28px;border-radius:6px;background:linear-gradient(135deg,#1755CC,#0A3A99);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff;font-family:var(--mono);}
         .logo-name{font-size:14px;font-weight:700;}
@@ -532,6 +541,19 @@ export default function Calc() {
         .ccy-btn.on{background:var(--blue);color:#fff;border-color:var(--blue);}
         @media(max-width:600px){.row{flex-direction:column;}.or-sep{padding:0;}.mp-grid{grid-template-columns:1fr 1fr;}.mp-grid-2{grid-template-columns:1fr;}.info-bar{flex-wrap:wrap;}.ib-cell{min-width:50%;}}
       `}</style>
+ 
+      {/* PLATFORM NAV — module switcher */}
+      <div className="platform-nav">
+        <div className="pn-inner">
+          <Link href="/" className="pn-brand">← Yield Calculator</Link>
+          <div className="pn-modules">
+            <Link href="/calc" className="pn-mod active">Calculator</Link>
+            <Link href="/revenue" className="pn-mod">Round-Trip</Link>
+            <Link href="/portfolio" className="pn-mod">Portfolio</Link>
+            <Link href="/curve" className="pn-mod">Yield Curve</Link>
+          </div>
+        </div>
+      </div>
  
       {/* TOPBAR */}
       <div className="topbar">
