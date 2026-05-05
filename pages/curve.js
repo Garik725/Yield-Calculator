@@ -174,6 +174,7 @@ export default function Curve() {
             <Link href="/revenue" className="hd-link">P&amp;L</Link>
             <Link href="/portfolio" className="hd-link">Portfolio</Link>
             <Link href="/curve" className="hd-link active">Yield Curve</Link>
+            <Link href="/fx" className="hd-link">FX</Link>
           </nav>
         </div>
       </header>

@@ -111,6 +111,40 @@ export default function Calc() {
     // Then fetch from API
     debounceRef.current = setTimeout(async () => {
       setSearching(true);
+
+      // Check if input looks like ISIN (12 chars, starts with 2 letters) or CUSIP (9 chars)
+      const cleaned = val.trim().toUpperCase();
+      const isISIN = /^[A-Z]{2}[A-Z0-9]{9}[0-9]$/.test(cleaned);
+      const isCUSIP = /^[A-Z0-9]{9}$/.test(cleaned);
+
+      // If looks like ISIN/CUSIP and not in local DB, try OpenFIGI
+      if ((isISIN || isCUSIP) && !FALLBACK_DB[cleaned]) {
+        try {
+          const figRes = await fetch(`/api/openfigi?id=${encodeURIComponent(cleaned)}`);
+          if (figRes.ok) {
+            const figData = await figRes.json();
+            if (figData.valid) {
+              setSearchResults(prev => {
+                const exists = prev.find(r => r.isin === figData.id);
+                if (exists) return prev;
+                return [{
+                  isin: figData.id,
+                  name: figData.name,
+                  issuer: figData.issuer,
+                  type: figData.securityType,
+                  rating: '–',
+                  // No coupon/maturity — user must enter manually
+                  needsManualEntry: true,
+                  source: 'openfigi',
+                  isBond: figData.isBond,
+                }, ...prev].slice(0, 6);
+              });
+            }
+          }
+        } catch (e) { /* silent */ }
+      }
+
+      // Also try the legacy bond API (currently a stub but keeps door open)
       try {
         const res = await fetch(`/api/bond?isin=${encodeURIComponent(val.trim())}`);
         if (res.ok) {
@@ -532,6 +566,9 @@ export default function Calc() {
         .ditem:last-child{border-bottom:none;}
         .ditem:hover{background:var(--bg);}
         .ditem-isin{font-size:10px;font-family:var(--mono);color:var(--blue);letter-spacing:.6px;}
+        .ditem-figi{background:linear-gradient(to right, var(--blue-dim) 0%, transparent 60%);}
+        .ditem-figi:hover{background:var(--blue-dim);}
+        .ditem-figi .ditem-meta em{font-style:italic;color:var(--blue);font-weight:600;}
         .ditem-name{font-size:13px;font-weight:500;margin:1px 0;}
         .ditem-meta{font-size:11px;color:var(--text3);}
         .ditem-manual{padding:10px 14px;cursor:pointer;background:#F9F8F6;border-top:1px solid var(--border);display:flex;align-items:center;gap:8px;}
@@ -631,6 +668,7 @@ export default function Calc() {
             <Link href="/revenue" className="pn-mod">P&amp;L</Link>
             <Link href="/portfolio" className="pn-mod">Portfolio</Link>
             <Link href="/curve" className="pn-mod">Yield Curve</Link>
+            <Link href="/fx" className="pn-mod">FX</Link>
           </div>
           <div className="nav-menu">
             <button className={`nav-trigger ${navOpen ? 'on' : ''}`} onClick={() => setNavOpen(!navOpen)} aria-label="Open menu">
@@ -646,6 +684,7 @@ export default function Calc() {
                 <Link href="/revenue" className="np-link" onClick={() => setNavOpen(false)}>P&amp;L</Link>
                 <Link href="/portfolio" className="np-link" onClick={() => setNavOpen(false)}>Portfolio</Link>
                 <Link href="/curve" className="np-link" onClick={() => setNavOpen(false)}>Yield Curve</Link>
+                <Link href="/fx" className="np-link" onClick={() => setNavOpen(false)}>FX</Link>
               </div>
             )}
           </div>
@@ -679,13 +718,35 @@ export default function Calc() {
           <span className="search-ico">{searching ? '⟳' : '⌕'}</span>
           {showDrop && (
             <div className="dropdown">
-              {searchResults.map(b => (
-                <div key={b.isin} className="ditem" onClick={() => loadBond(b)}>
-                  <div className="ditem-isin">{b.isin} {b.source === 'api' && <span style={{color:'var(--green)',fontSize:'9px'}}>● LIVE</span>}</div>
-                  <div className="ditem-name">{b.name}</div>
-                  <div className="ditem-meta">{b.coupon?.toFixed(3)}% · {b.maturity} · {b.rating} · {b.type}</div>
-                </div>
-              ))}
+              {searchResults.map(b => {
+                const isFromOpenFigi = b.source === 'openfigi';
+                if (isFromOpenFigi) {
+                  // OpenFIGI result — valid ISIN but no bond details, prompt for manual entry
+                  return (
+                    <div key={b.isin} className="ditem ditem-figi" onClick={() => {
+                      setShowDrop(false);
+                      setManualMode(true);
+                      setManualForm(f => ({
+                        ...f,
+                        isin: b.isin,
+                        name: b.name || '',
+                        issuer: b.issuer || '',
+                      }));
+                    }}>
+                      <div className="ditem-isin">{b.isin} <span style={{color:'var(--green)',fontSize:'9px'}}>✓ VALID ISIN</span></div>
+                      <div className="ditem-name">{b.name}</div>
+                      <div className="ditem-meta">{b.type} · OpenFIGI · <em>click to enter coupon &amp; maturity</em></div>
+                    </div>
+                  );
+                }
+                return (
+                  <div key={b.isin} className="ditem" onClick={() => loadBond(b)}>
+                    <div className="ditem-isin">{b.isin} {b.source === 'api' && <span style={{color:'var(--green)',fontSize:'9px'}}>● LIVE</span>}</div>
+                    <div className="ditem-name">{b.name}</div>
+                    <div className="ditem-meta">{b.coupon?.toFixed(3)}% · {b.maturity} · {b.rating} · {b.type}</div>
+                  </div>
+                );
+              })}
               <div className="ditem-manual" onClick={() => { setShowDrop(false); setManualMode(true); const isin = isinInput.trim().toUpperCase().split(' ')[0]; setManualForm(f => ({...f, isin})); }}>
                 <div>
                   <div className="ditem-manual-text">✚ Enter bond details manually</div>

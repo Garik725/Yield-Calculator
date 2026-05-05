@@ -445,6 +445,7 @@ export default function Portfolio() {
             <Link href="/revenue" className="hd-link">P&amp;L</Link>
             <Link href="/portfolio" className="hd-link active">Portfolio</Link>
             <Link href="/curve" className="hd-link">Yield Curve</Link>
+            <Link href="/fx" className="hd-link">FX</Link>
           </nav>
         </div>
       </header>

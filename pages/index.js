@@ -398,6 +398,7 @@ export default function Home() {
               <Link href="/revenue">P&amp;L</Link>
               <Link href="/portfolio">Portfolio</Link>
               <Link href="/curve">Yield Curve &amp; ETFs</Link>
+              <Link href="/fx">FX Desk</Link>
             </div>
             <div className="ft-col">
               <h5>Resources</h5>
