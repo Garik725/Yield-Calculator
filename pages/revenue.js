@@ -124,7 +124,7 @@ export default function Revenue() {
   return (
     <>
       <Head>
-        <title>Round-Trip P&L · Yield Calculator</title>
+        <title>P&amp;L · Yield Calculator</title>
         <meta name="description" content="Round-trip P&L attribution: total return split between carry and market move." />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
@@ -163,7 +163,7 @@ export default function Revenue() {
           </Link>
           <nav className="hd-nav">
             <Link href="/calc" className="hd-link">Calculator</Link>
-            <Link href="/revenue" className="hd-link active">Round-Trip</Link>
+            <Link href="/revenue" className="hd-link active">P&amp;L</Link>
             <Link href="/portfolio" className="hd-link">Portfolio</Link>
             <Link href="/curve" className="hd-link">Yield Curve</Link>
           </nav>
@@ -178,7 +178,7 @@ export default function Revenue() {
               <div className="nav-panel">
                 <Link href="/" className="np-link" onClick={() => setNavOpen(false)}>Home</Link>
                 <Link href="/calc" className="np-link" onClick={() => setNavOpen(false)}>Calculator</Link>
-                <Link href="/revenue" className="np-link active" onClick={() => setNavOpen(false)}>Round-Trip P&amp;L</Link>
+                <Link href="/revenue" className="np-link active" onClick={() => setNavOpen(false)}>P&amp;L</Link>
                 <Link href="/portfolio" className="np-link" onClick={() => setNavOpen(false)}>Portfolio</Link>
                 <Link href="/curve" className="np-link" onClick={() => setNavOpen(false)}>Yield Curve</Link>
               </div>
@@ -191,7 +191,7 @@ export default function Revenue() {
         <div className="page-inner">
           <div className="page-head">
             <div className="eyebrow">Module № 02</div>
-            <h1 className="page-h">The <em>Round-Trip.</em></h1>
+            <h1 className="page-h">The <em>P&amp;L.</em></h1>
             <p className="page-lede">
               Total return, attributed. Enter a buy, a sell, and two settlement dates · receive the gain split between carry and market move using the repriced-entry method. The canonical example below · 6% bond, one-year hold, yields down 100 bp · solves on page load.
             </p>

@@ -95,7 +95,7 @@ export default function Curve() {
           </Link>
           <nav className="hd-nav">
             <Link href="/calc" className="hd-link">Calculator</Link>
-            <Link href="/revenue" className="hd-link">Round-Trip</Link>
+            <Link href="/revenue" className="hd-link">P&amp;L</Link>
             <Link href="/portfolio" className="hd-link">Portfolio</Link>
             <Link href="/curve" className="hd-link active">Yield Curve</Link>
           </nav>
@@ -110,7 +110,7 @@ export default function Curve() {
               <div className="nav-panel">
                 <Link href="/" className="np-link" onClick={() => setNavOpen(false)}>Home</Link>
                 <Link href="/calc" className="np-link" onClick={() => setNavOpen(false)}>Calculator</Link>
-                <Link href="/revenue" className="np-link" onClick={() => setNavOpen(false)}>Round-Trip P&amp;L</Link>
+                <Link href="/revenue" className="np-link" onClick={() => setNavOpen(false)}>P&amp;L</Link>
                 <Link href="/portfolio" className="np-link" onClick={() => setNavOpen(false)}>Portfolio</Link>
                 <Link href="/curve" className="np-link active" onClick={() => setNavOpen(false)}>Yield Curve</Link>
               </div>

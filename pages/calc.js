@@ -628,7 +628,7 @@ export default function Calc() {
           <Link href="/" className="pn-brand">Yield Calculator</Link>
           <div className="pn-modules">
             <Link href="/calc" className="pn-mod active">Calculator</Link>
-            <Link href="/revenue" className="pn-mod">Round-Trip</Link>
+            <Link href="/revenue" className="pn-mod">P&amp;L</Link>
             <Link href="/portfolio" className="pn-mod">Portfolio</Link>
             <Link href="/curve" className="pn-mod">Yield Curve</Link>
           </div>
@@ -643,7 +643,7 @@ export default function Calc() {
               <div className="nav-panel">
                 <Link href="/" className="np-link" onClick={() => setNavOpen(false)}>Home</Link>
                 <Link href="/calc" className="np-link active" onClick={() => setNavOpen(false)}>Calculator</Link>
-                <Link href="/revenue" className="np-link" onClick={() => setNavOpen(false)}>Round-Trip P&amp;L</Link>
+                <Link href="/revenue" className="np-link" onClick={() => setNavOpen(false)}>P&amp;L</Link>
                 <Link href="/portfolio" className="np-link" onClick={() => setNavOpen(false)}>Portfolio</Link>
                 <Link href="/curve" className="np-link" onClick={() => setNavOpen(false)}>Yield Curve</Link>
               </div>

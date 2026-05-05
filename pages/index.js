@@ -86,7 +86,7 @@ export default function Home() {
               <div className="nav-panel">
                 <Link href="/" className="np-link active" onClick={() => setNavOpen(false)}>Home</Link>
                 <Link href="/calc" className="np-link" onClick={() => setNavOpen(false)}>Calculator</Link>
-                <Link href="/revenue" className="np-link" onClick={() => setNavOpen(false)}>Round-Trip P&amp;L</Link>
+                <Link href="/revenue" className="np-link" onClick={() => setNavOpen(false)}>P&amp;L</Link>
                 <Link href="/portfolio" className="np-link" onClick={() => setNavOpen(false)}>Portfolio</Link>
                 <Link href="/curve" className="np-link" onClick={() => setNavOpen(false)}>Yield Curve</Link>
               </div>
@@ -151,7 +151,7 @@ export default function Home() {
             <div className="eyebrow">The Four Modules</div>
             <h2 className="sec-h">One <em>engine.</em> Four workflows.</h2>
             <p className="sec-lede">
-              Every module runs on the same pure-JavaScript bond-math library. Price a bond in the Calculator, trade it in Round-Trip, manage it in Portfolio, benchmark it against the Treasury curve · without the number ever drifting between screens.
+              Every module runs on the same pure-JavaScript bond-math library. Price a bond in the Calculator, trade it in P&amp;L, manage it in Portfolio, benchmark it against the Treasury curve · without the number ever drifting between screens.
             </p>
           </div>
 
@@ -169,7 +169,7 @@ export default function Home() {
             <Link href="/revenue" className="mod">
               <div className="mod-route">/revenue</div>
               <div className="mod-num">№ 02</div>
-              <h3 className="mod-h">The <em>Round-Trip</em></h3>
+              <h3 className="mod-h">The <em>P&amp;L</em></h3>
               <p className="mod-body">Total return, attributed. Enter a buy, a sell, two settlement dates · receive the gain split between carry and market move. The repriced-entry method, not a naive cash difference.</p>
               <div className="mod-tags">
                 <span>Carry decomp</span><span>Market move</span><span>Coupon accounting</span><span>Hold-period return</span>
@@ -394,7 +394,7 @@ export default function Home() {
             <div className="plan-r">
               <div className="plan-feats-h">Everything included</div>
               <ul className="plan-feats">
-                <li>All four modules · Calculator, Round-Trip, Portfolio, Curve</li>
+                <li>All four modules · Calculator, P&amp;L, Portfolio, Curve</li>
                 <li><b>Five simultaneous logins</b> on a single account</li>
                 <li>Unlimited ISIN lookups and PDF settlement tickets</li>
                 <li>Portfolio with live marks, import/export</li>
@@ -420,7 +420,7 @@ export default function Home() {
             <div className="ft-col">
               <h5>Modules</h5>
               <Link href="/calc">Calculator</Link>
-              <Link href="/revenue">Round-Trip P&amp;L</Link>
+              <Link href="/revenue">P&amp;L</Link>
               <Link href="/portfolio">Portfolio</Link>
               <Link href="/curve">Yield Curve &amp; ETFs</Link>
             </div>
