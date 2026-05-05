@@ -1,12 +1,14 @@
 // pages/curve.js
 // Module 04 · The Curve · US Treasury yield curve & bond ETFs
 // Self-contained, matches new landing page design.
+// Fetches live data from EODHD via /api/curve/us and /api/etf-stats.
 
 import Head from 'next/head';
 import Link from 'next/link';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
-const CURVES = {
+// Fallback demo data — used only if API fetch fails.
+const DEMO_CURVES = {
   today: { '1M': 5.32, '3M': 5.18, '6M': 4.95, '1Y': 4.68, '2Y': 4.42, '3Y': 4.28, '5Y': 4.15, '7Y': 4.22, '10Y': 4.25, '20Y': 4.48, '30Y': 4.52 },
   week:  { '1M': 5.34, '3M': 5.20, '6M': 4.97, '1Y': 4.72, '2Y': 4.48, '3Y': 4.32, '5Y': 4.18, '7Y': 4.24, '10Y': 4.28, '20Y': 4.50, '30Y': 4.54 },
   year:  { '1M': 5.10, '3M': 4.98, '6M': 4.82, '1Y': 4.70, '2Y': 4.55, '3Y': 4.42, '5Y': 4.28, '7Y': 4.25, '10Y': 4.30, '20Y': 4.48, '30Y': 4.52 },
@@ -15,7 +17,17 @@ const CURVES = {
 const TENORS = ['1M', '3M', '6M', '1Y', '2Y', '3Y', '5Y', '7Y', '10Y', '20Y', '30Y'];
 const TENOR_X = { '1M': 80, '3M': 164, '6M': 237, '1Y': 325, '2Y': 437, '3Y': 513, '5Y': 619, '7Y': 706, '10Y': 801, '20Y': 945, '30Y': 1060 };
 
-const ETFS = [
+const ETF_DEFS = [
+  { sym: 'TLT', name: '20+ Year Treasury' },
+  { sym: 'IEF', name: '7-10 Year Treasury' },
+  { sym: 'SHY', name: '1-3 Year Treasury' },
+  { sym: 'LQD', name: 'Investment-Grade Corporate' },
+  { sym: 'HYG', name: 'High-Yield Corporate' },
+  { sym: 'AGG', name: 'Aggregate Bond' },
+];
+
+// Fallback ETF demo data
+const DEMO_ETFS = [
   { sym: 'TLT', name: '20+ Year Treasury',         price: 88.42,  chg: 0.36,  ytd: -2.1, dur: 16.8, yld: 4.48, er: 0.15 },
   { sym: 'IEF', name: '7-10 Year Treasury',        price: 94.18,  chg: 0.12,  ytd: -0.4, dur: 7.9,  yld: 4.22, er: 0.15 },
   { sym: 'SHY', name: '1-3 Year Treasury',         price: 82.15,  chg: 0.02,  ytd:  1.8, dur: 1.9,  yld: 4.55, er: 0.15 },
@@ -36,14 +48,86 @@ export default function Curve() {
   const [showYear, setShowYear] = useState(true);
   const [view, setView] = useState('treasury');
 
-  const t = CURVES.today;
+  // Live data state
+  const [curves, setCurves] = useState(DEMO_CURVES);
+  const [etfs, setEtfs] = useState(DEMO_ETFS);
+  const [asOf, setAsOf] = useState(null);
+  const [dataStatus, setDataStatus] = useState('loading'); // 'loading' | 'live' | 'demo' | 'error'
+  const [errorMsg, setErrorMsg] = useState('');
+
+  // Fetch yield curve on mount
+  useEffect(() => {
+    let cancelled = false;
+    fetch('/api/curve/us')
+      .then(r => {
+        if (!r.ok) throw new Error(`API returned ${r.status}`);
+        return r.json();
+      })
+      .then(data => {
+        if (cancelled) return;
+        if (data.error) throw new Error(data.message || data.error);
+        setCurves({ today: data.today, week: data.week, year: data.year });
+        setAsOf(data.asOf);
+        setDataStatus('live');
+      })
+      .catch(err => {
+        if (cancelled) return;
+        console.error('Curve fetch failed:', err);
+        setDataStatus('demo');
+        setErrorMsg(err.message);
+      });
+    return () => { cancelled = true; };
+  }, []);
+
+  // Fetch ETF stats on mount
+  useEffect(() => {
+    let cancelled = false;
+    const tickers = ETF_DEFS.map(e => e.sym).join(',');
+    fetch(`/api/etf-stats?ticker=${tickers}`)
+      .then(r => {
+        if (!r.ok) throw new Error(`API returned ${r.status}`);
+        return r.json();
+      })
+      .then(data => {
+        if (cancelled) return;
+        if (data.error) throw new Error(data.message || data.error);
+        const list = data.etfs || [data];
+        // Merge live data with our static names
+        const merged = ETF_DEFS.map(def => {
+          const live = list.find(e => e.ticker === def.sym);
+          if (!live || live.error) {
+            return DEMO_ETFS.find(d => d.sym === def.sym); // fallback per-row
+          }
+          return {
+            sym: def.sym,
+            name: def.name,
+            price: live.price,
+            chg: live.change,
+            ytd: live.ytd,
+            dur: live.dur,
+            yld: live.yld,
+            er: live.er,
+          };
+        });
+        setEtfs(merged);
+      })
+      .catch(err => {
+        if (cancelled) return;
+        console.error('ETF fetch failed:', err);
+      });
+    return () => { cancelled = true; };
+  }, []);
+
+  const t = curves.today;
   const spreads = {
     s2s10s: (t['10Y'] - t['2Y']) * 100,
     s3m10y: (t['10Y'] - t['3M']) * 100,
     slope:  (t['30Y'] - t['3M']) * 100,
   };
   const shape = spreads.s2s10s < -5 ? 'Inverted' : spreads.s2s10s < 5 ? 'Flat' : spreads.s2s10s < 50 ? 'Normal' : 'Steep';
-  const todayDate = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+  const todayDate = asOf
+    ? new Date(asOf).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
+    : new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
 
   return (
     <>
@@ -115,7 +199,12 @@ export default function Curve() {
                 <div className="curve-card-hd">
                   <div>
                     <div className="curve-title">US Treasury Constant-Maturity Curve</div>
-                    <div className="curve-sub">{todayDate} · end-of-day · source EODHD (demo data)</div>
+                    <div className="curve-sub">
+                      {todayDate} · end-of-day · source EODHD
+                      {dataStatus === 'loading' && <span className="status-dot loading"> · loading</span>}
+                      {dataStatus === 'live' && <span className="status-dot live"> · live</span>}
+                      {dataStatus === 'demo' && <span className="status-dot demo"> · demo data (live data unavailable)</span>}
+                    </div>
                   </div>
                   <div className="overlay-controls">
                     <label>
@@ -152,14 +241,14 @@ export default function Curve() {
                   <text x="30" y="185" fontFamily="Inter" fontSize="10" fill="#8E8A82" transform="rotate(-90 30 185)" textAnchor="middle" letterSpacing="1.4">YIELD (%)</text>
 
                   {showYear && (
-                    <polyline points={makePoints(CURVES.year)} fill="none" stroke="#8E8A82" strokeWidth="1.4" strokeDasharray="1.5 3" opacity="0.65" />
+                    <polyline points={makePoints(curves.year)} fill="none" stroke="#8E8A82" strokeWidth="1.4" strokeDasharray="1.5 3" opacity="0.65" />
                   )}
                   {showWeek && (
-                    <polyline points={makePoints(CURVES.week)} fill="none" stroke="#9D7E3E" strokeWidth="1.7" strokeDasharray="5 4" opacity="0.85" />
+                    <polyline points={makePoints(curves.week)} fill="none" stroke="#9D7E3E" strokeWidth="1.7" strokeDasharray="5 4" opacity="0.85" />
                   )}
 
-                  <path d={makeAreaPath(CURVES.today)} fill="url(#emeraldFill2)" />
-                  <polyline points={makePoints(CURVES.today)} fill="none" stroke="#214B3D" strokeWidth="2.4" strokeLinejoin="round" strokeLinecap="round" />
+                  <path d={makeAreaPath(curves.today)} fill="url(#emeraldFill2)" />
+                  <polyline points={makePoints(curves.today)} fill="none" stroke="#214B3D" strokeWidth="2.4" strokeLinejoin="round" strokeLinecap="round" />
 
                   <g fill="#214B3D">
                     {TENORS.map(tn => <circle key={tn} cx={TENOR_X[tn]} cy={yOf(t[tn])} r="4" />)}
@@ -229,9 +318,9 @@ export default function Curve() {
                     <div className="r">1Y Chg (bp)</div>
                   </div>
                   {TENORS.map(tn => {
-                    const val = CURVES.today[tn];
-                    const wChg = (val - CURVES.week[tn]) * 100;
-                    const yChg = (val - CURVES.year[tn]) * 100;
+                    const val = curves.today[tn];
+                    const wChg = (val - curves.week[tn]) * 100;
+                    const yChg = (val - curves.year[tn]) * 100;
                     return (
                       <div key={tn} className="tt-row">
                         <div className="tt-tn">{tn}</div>
@@ -250,10 +339,14 @@ export default function Curve() {
             <div className="etf-panel">
               <div className="etf-hd">
                 <div className="etf-title">Major Bond ETFs</div>
-                <div className="etf-sub">The six most-traded bond-market proxies · end-of-day · source EODHD (demo data)</div>
+                <div className="etf-sub">
+                  The six most-traded bond-market proxies · end-of-day · source EODHD
+                  {dataStatus === 'live' && <span className="status-dot live"> · live</span>}
+                  {dataStatus === 'demo' && <span className="status-dot demo"> · demo data</span>}
+                </div>
               </div>
               <div className="etf-grid">
-                {ETFS.map(e => (
+                {etfs.map(e => (
                   <div key={e.sym} className="etf-card">
                     <div className="etf-card-top">
                       <div>
@@ -325,6 +418,9 @@ export default function Curve() {
         .curve-card-hd { display: flex; justify-content: space-between; align-items: flex-end; padding-bottom: 18px; border-bottom: 1px solid var(--rule); margin-bottom: 24px; flex-wrap: wrap; gap: 16px; }
         .curve-title { font-family: var(--display); font-weight: 500; font-size: 22px; letter-spacing: -.015em; font-variation-settings: "opsz" 24; }
         .curve-sub { font-family: var(--mono); font-size: 11px; color: var(--ink-3); margin-top: 4px; }
+        .status-dot.live { color: var(--bull); font-weight: 600; }
+        .status-dot.demo { color: var(--gold); font-style: italic; }
+        .status-dot.loading { color: var(--ink-3); font-style: italic; }
         .overlay-controls { display: flex; gap: 18px; flex-wrap: wrap; }
         .overlay-controls label { display: flex; align-items: center; gap: 8px; font-family: var(--sans); font-size: 12px; color: var(--ink-2); font-weight: 500; cursor: pointer; user-select: none; }
         .overlay-controls input { cursor: pointer; }

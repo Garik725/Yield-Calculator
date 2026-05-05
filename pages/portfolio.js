@@ -67,6 +67,9 @@ export default function Portfolio() {
     setTimeout(() => setToast(''), 2400);
   };
 
+  const [lookupStatus, setLookupStatus] = useState(''); // '' | 'loading' | 'success' | 'error'
+  const [refreshing, setRefreshing] = useState(false);
+
   const addPosition = () => {
     const tkr = form.tkr.trim().toUpperCase();
     const qty = parseFloat(form.qty);
@@ -84,7 +87,69 @@ export default function Portfolio() {
     };
     setHoldings([...holdings, newPos]);
     setForm({ tkr: '', type: form.type, qty: '', price: '', chg: '0' });
+    setLookupStatus('');
     showToast(`Added ${tkr}`);
+  };
+
+  // Auto-fetch live price when user types a ticker and tabs out
+  const lookupPrice = async () => {
+    const tkr = form.tkr.trim().toUpperCase();
+    if (!tkr) return;
+    if (form.type === 'bond' || form.type === 'fx') {
+      // Bonds and FX don't have ticker quotes
+      return;
+    }
+    setLookupStatus('loading');
+    try {
+      const r = await fetch(`/api/quote?ticker=${encodeURIComponent(tkr)}`);
+      if (!r.ok) throw new Error(`Lookup failed (${r.status})`);
+      const data = await r.json();
+      if (data.error || !data.price) {
+        throw new Error(data.message || 'Ticker not found');
+      }
+      setForm(prev => ({
+        ...prev,
+        price: String(data.price),
+        chg: String(data.change || 0),
+      }));
+      setLookupStatus('success');
+    } catch (err) {
+      console.error('Lookup error:', err);
+      setLookupStatus('error');
+    }
+  };
+
+  // Refresh prices for all stock/ETF positions
+  const refreshAllPrices = async () => {
+    const refreshable = holdings.filter(h => h.type === 'stock' || h.type === 'etf');
+    if (refreshable.length === 0) {
+      showToast('No stocks or ETFs to refresh');
+      return;
+    }
+    setRefreshing(true);
+    showToast(`Refreshing ${refreshable.length} position${refreshable.length === 1 ? '' : 's'}...`);
+    try {
+      const tickers = refreshable.map(h => h.tkr).join(',');
+      const r = await fetch(`/api/quote?ticker=${encodeURIComponent(tickers)}`);
+      if (!r.ok) throw new Error(`Refresh failed (${r.status})`);
+      const data = await r.json();
+      const quotes = data.quotes || [data];
+      let updated = 0;
+      const newHoldings = holdings.map(h => {
+        if (h.type !== 'stock' && h.type !== 'etf') return h;
+        const live = quotes.find(q => q.ticker === h.tkr.toUpperCase());
+        if (!live || live.error || !live.price) return h;
+        updated++;
+        return { ...h, price: live.price, chg: live.change || 0 };
+      });
+      setHoldings(newHoldings);
+      showToast(`Updated ${updated} of ${refreshable.length} position${refreshable.length === 1 ? '' : 's'}`);
+    } catch (err) {
+      console.error('Refresh error:', err);
+      showToast(`Refresh failed: ${err.message}`);
+    } finally {
+      setRefreshing(false);
+    }
   };
 
   const deletePosition = (id) => {
@@ -397,6 +462,9 @@ export default function Portfolio() {
             </div>
             <div className="head-actions">
               <button className="btn-ghost" onClick={loadDemo}>Load Demo</button>
+              <button className="btn-ghost refresh" onClick={refreshAllPrices} disabled={refreshing}>
+                {refreshing ? 'Refreshing…' : '↻ Refresh Prices'}
+              </button>
               <button className="btn-ghost" onClick={exportPDF}>Export PDF</button>
               <button className="btn-ghost" onClick={() => importRef.current?.click()}>Import PDF</button>
               <input ref={importRef} type="file" accept=".pdf" onChange={importPDF} style={{ display: 'none' }} />
@@ -410,7 +478,19 @@ export default function Portfolio() {
             <div className="add-row">
               <div className="field f-tkr">
                 <label>Ticker / ISIN</label>
-                <input type="text" value={form.tkr} placeholder="AAPL" onChange={e => setForm({ ...form, tkr: e.target.value })} onKeyDown={e => e.key === 'Enter' && addPosition()} />
+                <div className="ticker-wrap">
+                  <input
+                    type="text"
+                    value={form.tkr}
+                    placeholder="AAPL"
+                    onChange={e => { setForm({ ...form, tkr: e.target.value }); setLookupStatus(''); }}
+                    onBlur={lookupPrice}
+                    onKeyDown={e => e.key === 'Enter' && (form.price ? addPosition() : lookupPrice())}
+                  />
+                  {lookupStatus === 'loading' && <span className="lookup-tag loading">…</span>}
+                  {lookupStatus === 'success' && <span className="lookup-tag success">✓ Live</span>}
+                  {lookupStatus === 'error' && <span className="lookup-tag error">Not found</span>}
+                </div>
               </div>
               <div className="field">
                 <label>Type</label>
@@ -599,6 +679,14 @@ export default function Portfolio() {
         .btn-ghost { padding: 9px 16px; border: 1px solid var(--rule); background: var(--paper-2); color: var(--ink-2); font-family: var(--sans); font-size: 12px; font-weight: 500; letter-spacing: .02em; transition: all .15s; }
         .btn-ghost:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
         .btn-ghost.danger:hover { border-color: var(--bear); color: var(--bear); background: #FCEDE9; }
+        .btn-ghost.refresh:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
+        .btn-ghost:disabled { opacity: 0.5; cursor: wait; }
+        .ticker-wrap { position: relative; display: flex; align-items: center; }
+        .ticker-wrap input { flex: 1; padding-right: 80px; }
+        .lookup-tag { position: absolute; right: 8px; font-family: var(--sans); font-size: 10px; font-weight: 600; padding: 3px 8px; letter-spacing: .04em; pointer-events: none; }
+        .lookup-tag.loading { color: var(--ink-3); }
+        .lookup-tag.success { color: var(--bull); background: var(--accent-soft); }
+        .lookup-tag.error { color: var(--bear); background: #FCEDE9; }
 
         .btn-fill { display: inline-block; padding: 12px 28px; background: var(--accent); color: var(--paper); font-family: var(--sans); font-weight: 500; font-size: 13.5px; letter-spacing: .01em; transition: background .15s; margin-top: 16px; }
         .btn-fill:hover { background: var(--accent-2); }
