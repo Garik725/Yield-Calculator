@@ -33,14 +33,6 @@ export default function Revenue() {
 
   const [result, setResult] = useState(null);
   const [error, setError] = useState('');
-  const [navOpen, setNavOpen] = useState(false);
-
-  useEffect(() => {
-    if (!navOpen) return;
-    const close = (e) => { if (!e.target.closest('.nav-menu')) setNavOpen(false); };
-    document.addEventListener('mousedown', close);
-    return () => document.removeEventListener('mousedown', close);
-  }, [navOpen]);
 
   const calculate = () => {
     setError('');
@@ -167,23 +159,6 @@ export default function Revenue() {
             <Link href="/portfolio" className="hd-link">Portfolio</Link>
             <Link href="/curve" className="hd-link">Yield Curve</Link>
           </nav>
-          <div className="nav-menu">
-            <button className={`nav-trigger ${navOpen ? 'on' : ''}`} onClick={() => setNavOpen(!navOpen)} aria-label="Open menu">
-              Menu
-              <svg width="10" height="6" viewBox="0 0 10 6" aria-hidden="true">
-                <path d="M1 1L5 5L9 1" stroke="currentColor" strokeWidth="1.6" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-            </button>
-            {navOpen && (
-              <div className="nav-panel">
-                <Link href="/" className="np-link" onClick={() => setNavOpen(false)}>Home</Link>
-                <Link href="/calc" className="np-link" onClick={() => setNavOpen(false)}>Calculator</Link>
-                <Link href="/revenue" className="np-link active" onClick={() => setNavOpen(false)}>P&amp;L</Link>
-                <Link href="/portfolio" className="np-link" onClick={() => setNavOpen(false)}>Portfolio</Link>
-                <Link href="/curve" className="np-link" onClick={() => setNavOpen(false)}>Yield Curve</Link>
-              </div>
-            )}
-          </div>
         </div>
       </header>
 
@@ -368,17 +343,6 @@ export default function Revenue() {
         .hd-back:hover { color: var(--accent); }
 
         /* ── NAV MENU DROPDOWN ── */
-        .nav-menu { position: relative; }
-        .nav-trigger { display: flex; align-items: center; gap: 8px; padding: 8px 14px; background: var(--paper-2); border: 1px solid var(--rule); font-family: var(--sans); font-size: 13px; font-weight: 500; color: var(--ink-2); cursor: pointer; transition: all .15s; }
-        .nav-trigger:hover { border-color: var(--accent); color: var(--accent); }
-        .nav-trigger.on { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
-        .nav-trigger svg { transition: transform .2s; }
-        .nav-trigger.on svg { transform: rotate(180deg); }
-        .nav-panel { position: absolute; top: calc(100% + 8px); right: 0; background: var(--paper); border: 1px solid var(--rule); min-width: 220px; box-shadow: 0 12px 32px rgba(26,24,21,.12); z-index: 200; animation: navSlideDown .15s ease-out; }
-        @keyframes navSlideDown { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
-        .np-link { display: block; padding: 11px 18px; font-family: var(--sans); font-size: 13.5px; font-weight: 500; color: var(--ink-2); border-left: 2px solid transparent; transition: all .12s; }
-        .np-link:hover { background: var(--accent-soft); color: var(--accent); border-left-color: var(--accent); }
-        .np-link.active { color: var(--accent); background: var(--accent-soft); border-left-color: var(--accent); font-weight: 600; }
 
         /* PAGE */
         .page { padding: clamp(40px, 6vw, 72px) 0 80px; min-height: calc(100vh - 200px); }
