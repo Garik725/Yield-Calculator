@@ -370,7 +370,7 @@ export default function Home() {
               <div className="plan-feats-h">Everything included</div>
               <ul className="plan-feats">
                 <li>All four modules · Calculator, Round-Trip, Portfolio, Curve</li>
-                <li><b>Five simultaneous logins</b> 
+                <li><b>Five simultaneous logins</b> on a single account</li>
                 <li>Unlimited ISIN lookups and PDF settlement tickets</li>
                 <li>Portfolio with live marks, import/export</li>
                 <li>US Treasury curve with historical overlays</li>
