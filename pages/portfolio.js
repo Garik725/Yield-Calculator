@@ -599,8 +599,8 @@ export default function Portfolio() {
         .hd-mark { width: 32px; height: 32px; background: var(--accent); color: var(--paper); display: flex; align-items: center; justify-content: center; font-family: var(--display); font-weight: 700; font-size: 13px; letter-spacing: -.02em; }
         .hd-name { font-family: var(--display); font-weight: 600; font-size: 18px; letter-spacing: -.015em; line-height: 1; }
         .hd-name :global(i) { font-style: italic; font-weight: 400; color: var(--ink-3); }
-        .hd-nav { flex: 1; display: flex; gap: 4px; justify-content: center; }
-        .hd-link { padding: 8px 16px; font-family: var(--sans); font-size: 13.5px; font-weight: 500; color: var(--ink-3); border-bottom: 2px solid transparent; transition: color .15s, border-color .15s; }
+        .hd-nav { flex: 1; display: flex; gap: 24px; justify-content: center; flex-wrap: wrap; }
+        .hd-link { padding: 8px 4px; font-family: var(--sans); font-size: 13.5px; font-weight: 500; color: var(--ink-3); border-bottom: 2px solid transparent; transition: color .15s, border-color .15s; white-space: nowrap; }
         .hd-link:hover { color: var(--ink); }
         .hd-link.active { color: var(--accent); border-bottom-color: var(--accent); }
         .hd-back { font-family: var(--sans); font-size: 13px; font-weight: 500; color: var(--ink-3); transition: color .15s; }
@@ -714,7 +714,8 @@ export default function Portfolio() {
         /* ── RESPONSIVE ── */
         @media (max-width: 960px) {
           .hd-inner { gap: 16px; }
-          .hd-link { padding: 8px 10px; font-size: 12px; }
+          .hd-nav { gap: 18px; }
+          .hd-link { font-size: 12.5px; }
           .hd-back { display: none; }
           .add-row { grid-template-columns: 1fr 1fr; gap: 12px; }
           .kpis { grid-template-columns: 1fr 1fr; }
@@ -723,7 +724,8 @@ export default function Portfolio() {
         }
         @media (max-width: 720px) {
           .hd-name { display: none; }
-          .hd-link { padding: 8px 8px; font-size: 11.5px; }
+          .hd-nav { gap: 14px; }
+          .hd-link { font-size: 12px; }
         }
         @media (max-width: 560px) {
           .add-row { grid-template-columns: 1fr; }
@@ -732,7 +734,8 @@ export default function Portfolio() {
           .head-actions :global(button) { flex: 1; min-width: 0; }
           .kpis { grid-template-columns: 1fr; }
           .toast { left: 24px; right: 24px; bottom: 16px; }
-          .hd-link { padding: 6px 6px; font-size: 11px; }
+          .hd-nav { gap: 12px; }
+          .hd-link { font-size: 11.5px; }
         }
       `}</style>
     </>
