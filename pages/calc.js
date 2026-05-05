@@ -49,6 +49,14 @@ export default function Calc() {
   const [lastEdited, setLastEdited] = useState('ytm');
   const [result, setResult] = useState(null);
   const [pdfStatus, setPdfStatus] = useState('');
+  const [navOpen, setNavOpen] = useState(false);
+
+  useEffect(() => {
+    if (!navOpen) return;
+    const close = (e) => { if (!e.target.closest('.nav-menu')) setNavOpen(false); };
+    document.addEventListener('mousedown', close);
+    return () => document.removeEventListener('mousedown', close);
+  }, [navOpen]);
 
   // View state · 'calc' or 'pnl'
   const [view, setView] = useState('calc');
@@ -493,10 +501,23 @@ export default function Calc() {
         .pn-brand{font-family:var(--sans);font-size:13px;font-weight:500;letter-spacing:.01em;color:var(--text2);text-decoration:none;transition:color .15s;display:flex;align-items:center;gap:10px;}
         .pn-brand:hover{color:var(--blue);}
         .pn-brand::before{content:"YC";display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;background:var(--blue);color:var(--bg);font-family:var(--display);font-weight:700;font-size:11px;letter-spacing:-.02em;}
-        .pn-modules{display:flex;gap:0;margin-left:auto;}
+        .pn-modules{display:flex;gap:0;margin-left:auto;margin-right:14px;}
         .pn-mod{padding:0 16px;height:48px;display:flex;align-items:center;font-family:var(--sans);font-size:12.5px;font-weight:500;letter-spacing:.01em;color:var(--text3);text-decoration:none;border-bottom:2px solid transparent;transition:all .15s;}
         .pn-mod:hover{color:var(--text);}
         .pn-mod.active{color:var(--blue);border-bottom-color:var(--blue);}
+
+        /* ── NAV MENU DROPDOWN ── */
+        .nav-menu { position: relative; }
+        .nav-trigger { display: flex; align-items: center; gap: 8px; padding: 7px 14px; background: var(--surface); border: 1px solid var(--border); font-family: var(--sans); font-size: 12.5px; font-weight: 500; color: var(--text2); cursor: pointer; transition: all .15s; }
+        .nav-trigger:hover { border-color: var(--blue); color: var(--blue); }
+        .nav-trigger.on { border-color: var(--blue); color: var(--blue); background: var(--blue-dim); }
+        .nav-trigger svg { transition: transform .2s; }
+        .nav-trigger.on svg { transform: rotate(180deg); }
+        .nav-panel { position: absolute; top: calc(100% + 8px); right: 0; background: var(--surface); border: 1px solid var(--border); min-width: 220px; box-shadow: 0 12px 32px rgba(26,24,21,.12); z-index: 200; animation: navSlideDown .15s ease-out; }
+        @keyframes navSlideDown { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
+        .np-link { display: block; padding: 11px 18px; font-family: var(--sans); font-size: 13.5px; font-weight: 500; color: var(--text2); border-left: 2px solid transparent; transition: all .12s; text-decoration: none; }
+        .np-link:hover { background: var(--blue-dim); color: var(--blue); border-left-color: var(--blue); }
+        .np-link.active { color: var(--blue); background: var(--blue-dim); border-left-color: var(--blue); font-weight: 600; }
         .topbar{display:flex;align-items:center;gap:14px;padding:0 22px;height:52px;background:var(--surface);border-bottom:1px solid var(--border);position:sticky;top:48px;z-index:100;box-shadow:0 1px 4px rgba(0,0,0,.05);}
         .logo{display:flex;align-items:center;gap:8px;}
         .logo-sq{width:30px;height:30px;background:var(--blue);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--bg);font-family:var(--display);letter-spacing:-.02em;}
@@ -610,6 +631,23 @@ export default function Calc() {
             <Link href="/revenue" className="pn-mod">Round-Trip</Link>
             <Link href="/portfolio" className="pn-mod">Portfolio</Link>
             <Link href="/curve" className="pn-mod">Yield Curve</Link>
+          </div>
+          <div className="nav-menu">
+            <button className={`nav-trigger ${navOpen ? 'on' : ''}`} onClick={() => setNavOpen(!navOpen)} aria-label="Open menu">
+              Menu
+              <svg width="10" height="6" viewBox="0 0 10 6" aria-hidden="true">
+                <path d="M1 1L5 5L9 1" stroke="currentColor" strokeWidth="1.6" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </button>
+            {navOpen && (
+              <div className="nav-panel">
+                <Link href="/" className="np-link" onClick={() => setNavOpen(false)}>Home</Link>
+                <Link href="/calc" className="np-link active" onClick={() => setNavOpen(false)}>Calculator</Link>
+                <Link href="/revenue" className="np-link" onClick={() => setNavOpen(false)}>Round-Trip P&amp;L</Link>
+                <Link href="/portfolio" className="np-link" onClick={() => setNavOpen(false)}>Portfolio</Link>
+                <Link href="/curve" className="np-link" onClick={() => setNavOpen(false)}>Yield Curve</Link>
+              </div>
+            )}
           </div>
         </div>
       </div>
