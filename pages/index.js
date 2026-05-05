@@ -1,5 +1,5 @@
 // pages/index.js
-// Elegant editorial landing page — Fraunces + Inter, emerald + ivory.
+// Elegant editorial landing page · Fraunces + Inter, emerald + ivory.
 
 import Head from 'next/head';
 import Link from 'next/link';
@@ -11,7 +11,7 @@ export default function Home() {
   return (
     <>
       <Head>
-        <title>Yield Calculator — Fixed-Income Analytics</title>
+        <title>Yield Calculator · Fixed-Income Analytics</title>
         <meta name="description" content="Bond settlement, round-trip P&L attribution, portfolio analytics, and a live US Treasury yield curve. Refined fixed-income math in a browser tab." />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
@@ -77,7 +77,7 @@ export default function Home() {
             <div className="eyebrow">Fixed-Income Analytics, Refined</div>
             <h1 className="hero-h">
               Quiet, accurate<br/>
-              <em>bond mathematics —</em><br/>
+              <em>bond mathematics ·</em><br/>
               in a browser tab.
             </h1>
             <p className="hero-lede">
@@ -97,7 +97,7 @@ export default function Home() {
           </div>
 
           <div className="specimen">
-            <div className="spec-label">Specimen — settlement</div>
+            <div className="spec-label">Specimen · settlement</div>
             <div className="spec-isin">US91282CJM14</div>
             <div className="spec-desc">UST 4.25% 02/15/2035</div>
             <div className="spec-divider"></div>
@@ -126,7 +126,7 @@ export default function Home() {
             <div className="eyebrow">The Four Modules</div>
             <h2 className="sec-h">One <em>engine.</em> Four workflows.</h2>
             <p className="sec-lede">
-              Every module runs on the same pure-JavaScript bond-math library. Price a bond in the Calculator, trade it in Round-Trip, manage it in Portfolio, benchmark it against the Treasury curve — without the number ever drifting between screens.
+              Every module runs on the same pure-JavaScript bond-math library. Price a bond in the Calculator, trade it in Round-Trip, manage it in Portfolio, benchmark it against the Treasury curve · without the number ever drifting between screens.
             </p>
           </div>
 
@@ -145,7 +145,7 @@ export default function Home() {
               <div className="mod-route">/revenue</div>
               <div className="mod-num">№ 02</div>
               <h3 className="mod-h">The <em>Round-Trip</em></h3>
-              <p className="mod-body">Total return, attributed. Enter a buy, a sell, two settlement dates — receive the gain split between carry and market move. The repriced-entry method, not a naive cash difference.</p>
+              <p className="mod-body">Total return, attributed. Enter a buy, a sell, two settlement dates · receive the gain split between carry and market move. The repriced-entry method, not a naive cash difference.</p>
               <div className="mod-tags">
                 <span>Carry decomp</span><span>Market move</span><span>Coupon accounting</span><span>Hold-period return</span>
               </div>
@@ -165,7 +165,7 @@ export default function Home() {
               <div className="mod-route">/curve</div>
               <div className="mod-num">№ 04</div>
               <h3 className="mod-h">The <em>Curve</em></h3>
-              <p className="mod-body">The US Treasury constant-maturity curve — today, a week ago, a year ago — overlaid and annotated. Plus live charts for the major bond ETFs: TLT, IEF, SHY, LQD, HYG, AGG.</p>
+              <p className="mod-body">The US Treasury constant-maturity curve · today, a week ago, a year ago · overlaid and annotated. Plus live charts for the major bond ETFs: TLT, IEF, SHY, LQD, HYG, AGG.</p>
               <div className="mod-tags">
                 <span>1M → 30Y</span><span>Historical overlay</span><span>ETF pricing</span><span>Inversion flags</span>
               </div>
@@ -183,7 +183,7 @@ export default function Home() {
               <h2 className="sec-h">The shape of money,<br/><em>at a glance.</em></h2>
             </div>
             <p className="sec-lede right">
-              Eleven tenors, from one-month bills to thirty-year bonds. Today, a week ago, a year ago — overlaid and annotated. The inversion is marked where it happens; the spreads are computed below.
+              Eleven tenors, from one-month bills to thirty-year bonds. Today, a week ago, a year ago · overlaid and annotated. The inversion is marked where it happens; the spreads are computed below.
             </p>
           </div>
 
@@ -259,7 +259,7 @@ export default function Home() {
 
             <div className="etf-note">
               <span className="etf-tag">Also covered</span>
-              <span className="etf-text">Bond ETFs charted the same way — <b>TLT, IEF, SHY, LQD, HYG, AGG</b> — each with price, yield, duration and expense ratio.</span>
+              <span className="etf-text">Bond ETFs charted the same way · <b>TLT, IEF, SHY, LQD, HYG, AGG</b> · each with price, yield, duration and expense ratio.</span>
             </div>
           </div>
         </div>
@@ -302,8 +302,8 @@ export default function Home() {
       <section className="quote-sec">
         <div className="quote-inner">
           <div className="quote-mark">"</div>
-          <p className="quote-text">For settlement math, round-trip attribution and curve context, I want <em>a scalpel</em> that opens in a browser tab — nothing to install, nothing to learn, answers in seconds.</p>
-          <div className="quote-attrib">— A Fixed-Income Trader</div>
+          <p className="quote-text">For settlement math, round-trip attribution and curve context, I want <em>a scalpel</em> that opens in a browser tab · nothing to install, nothing to learn, answers in seconds.</p>
+          <div className="quote-attrib">· A Fixed-Income Trader</div>
         </div>
       </section>
 
@@ -316,13 +316,13 @@ export default function Home() {
           </div>
           <div className="cap-grid">
             {[
-              ['01', 'Settlement Math, Reproducible', "Clean price, dirty price, accrued interest, yield to maturity, modified duration and DV01 — computed under the conventions each bond was issued with. Reproducible to the counterparty's ticket."],
+              ['01', 'Settlement Math, Reproducible', "Clean price, dirty price, accrued interest, yield to maturity, modified duration and DV01 · computed under the conventions each bond was issued with. Reproducible to the counterparty's ticket."],
               ['02', 'Round-Trip Attribution', "Total return split into Carry and Market-Move using the repriced-entry method. A proper answer to <em>why</em> the trade made money."],
               ['03', 'Portfolio Analytics', "Aggregate yield, weighted duration, portfolio DV01, and a maturity ladder. Positions stored locally; export as JSON or CSV."],
               ['04', 'US Treasury Curve, Live', "Eleven tenors with historical overlays and spread summaries. Inversion flagged automatically. 2s10s and 3m10y computed below the chart."],
               ['05', 'Major Bond ETFs', "Price and context for TLT, IEF, SHY, LQD, HYG and AGG, alongside the government curve. The fastest read of the bond market."],
               ['06', 'Browser-Native', "Opens in any modern browser, with one account working across up to five devices simultaneously. No install, no VPN, no IT ticket."],
-              ['07', 'PDF Settlement Tickets', "Every calculation exports to a clean PDF ticket with a unique reference number — for the back office, the audit trail, or your own records."],
+              ['07', 'PDF Settlement Tickets', "Every calculation exports to a clean PDF ticket with a unique reference number · for the back office, the audit trail, or your own records."],
               ['08', 'Priced for the Individual', "One subscription, one account, five active sessions. $100 a year or $11.50 a month. No per-seat surcharges."],
             ].map(([n, t, body]) => (
               <div key={n} className="cap">
@@ -369,12 +369,12 @@ export default function Home() {
             <div className="plan-r">
               <div className="plan-feats-h">Everything included</div>
               <ul className="plan-feats">
-                <li>All four modules — Calculator, Round-Trip, Portfolio, Curve</li>
-                <li><b>Five simultaneous logins</b> — same account, five devices at the same time</li>
+                <li>All four modules · Calculator, Round-Trip, Portfolio, Curve</li>
+                <li><b>Five simultaneous logins</b> · same account, five devices at the same time</li>
                 <li>Unlimited ISIN lookups and PDF settlement tickets</li>
                 <li>Portfolio with live marks, import/export</li>
                 <li>US Treasury curve with historical overlays</li>
-                <li>Bond ETF pricing — TLT, IEF, LQD, HYG, AGG and more</li>
+                <li>Bond ETF pricing · TLT, IEF, LQD, HYG, AGG and more</li>
                 <li>Email support, 24-hour reply</li>
               </ul>
               <Link href="/calc" className="plan-cta">Start 14-Day Free Trial</Link>

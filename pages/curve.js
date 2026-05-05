@@ -1,5 +1,5 @@
 // pages/curve.js
-// Module 04 — The Curve — US Treasury yield curve & bond ETFs
+// Module 04 · The Curve · US Treasury yield curve & bond ETFs
 // Self-contained, matches new landing page design.
 
 import Head from 'next/head';
@@ -48,7 +48,7 @@ export default function Curve() {
   return (
     <>
       <Head>
-        <title>Yield Curve & ETFs — Yield Calculator</title>
+        <title>Yield Curve & ETFs · Yield Calculator</title>
         <meta name="description" content="US Treasury constant-maturity yield curve and major bond ETF coverage." />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
@@ -101,7 +101,7 @@ export default function Curve() {
             <div className="eyebrow">Module № 04</div>
             <h1 className="page-h">The <em>Curve.</em></h1>
             <p className="page-lede">
-              The US Treasury constant-maturity curve and the major bond ETFs — together in one view. Eleven tenors from one-month bills to thirty-year bonds, with historical overlays and spread summaries. Below, the six ETFs most commonly used as curve proxies.
+              The US Treasury constant-maturity curve and the major bond ETFs · together in one view. Eleven tenors from one-month bills to thirty-year bonds, with historical overlays and spread summaries. Below, the six ETFs most commonly used as curve proxies.
             </p>
           </div>
 
@@ -384,8 +384,15 @@ export default function Curve() {
         .ft :global(a:hover) { color: var(--accent-2); }
         .ft-disc { font-style: italic; opacity: .7; }
 
-        @media (max-width: 960px) { .hd-nav { display: none; } .stats { grid-template-columns: 1fr 1fr; } .etf-grid { grid-template-columns: 1fr 1fr; } }
-        @media (max-width: 560px) { .etf-grid { grid-template-columns: 1fr; } }
+        @media (max-width: 960px) {
+          .hd-inner { gap: 16px; }
+          .hd-link { padding: 8px 10px; font-size: 12px; }
+          .hd-back { display: none; }
+          .stats { grid-template-columns: 1fr 1fr; }
+          .etf-grid { grid-template-columns: 1fr 1fr; }
+        }
+        @media (max-width: 720px) { .hd-name { display: none; } .hd-link { padding: 8px 8px; font-size: 11.5px; } }
+        @media (max-width: 560px) { .etf-grid { grid-template-columns: 1fr; } .hd-link { padding: 6px 6px; font-size: 11px; } }
       `}</style>
     </>
   );

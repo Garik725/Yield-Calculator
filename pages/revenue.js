@@ -1,5 +1,5 @@
 // pages/revenue.js
-// Module 02 — The Round-Trip — P&L attribution
+// Module 02 · The Round-Trip · P&L attribution
 // Self-contained, matches new landing page design.
 
 import Head from 'next/head';
@@ -116,7 +116,7 @@ export default function Revenue() {
   return (
     <>
       <Head>
-        <title>Round-Trip P&L — Yield Calculator</title>
+        <title>Round-Trip P&L · Yield Calculator</title>
         <meta name="description" content="Round-trip P&L attribution: total return split between carry and market move." />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
@@ -169,7 +169,7 @@ export default function Revenue() {
             <div className="eyebrow">Module № 02</div>
             <h1 className="page-h">The <em>Round-Trip.</em></h1>
             <p className="page-lede">
-              Total return, attributed. Enter a buy, a sell, and two settlement dates — receive the gain split between carry and market move using the repriced-entry method. The canonical example below — 6% bond, one-year hold, yields down 100 bp — solves on page load.
+              Total return, attributed. Enter a buy, a sell, and two settlement dates · receive the gain split between carry and market move using the repriced-entry method. The canonical example below · 6% bond, one-year hold, yields down 100 bp · solves on page load.
             </p>
           </div>
 
@@ -312,7 +312,7 @@ export default function Revenue() {
                 </>
               ) : (
                 <div className="empty">
-                  <div className="empty-mark">—</div>
+                  <div className="empty-mark">·</div>
                   <p>Enter the trade details and click Calculate.</p>
                 </div>
               )}
@@ -431,8 +431,13 @@ export default function Revenue() {
         .ft :global(a:hover) { color: var(--accent-2); }
         .ft-disc { font-style: italic; opacity: .7; }
 
-        @media (max-width: 960px) { .hd-nav { display: none; } }
-        @media (max-width: 560px) { .grid-2 { grid-template-columns: 1fr; } .attr { grid-template-columns: 1fr; } }
+        @media (max-width: 960px) {
+          .hd-inner { gap: 16px; }
+          .hd-link { padding: 8px 10px; font-size: 12px; }
+          .hd-back { display: none; }
+        }
+        @media (max-width: 720px) { .hd-name { display: none; } .hd-link { padding: 8px 8px; font-size: 11.5px; } }
+        @media (max-width: 560px) { .grid-2 { grid-template-columns: 1fr; } .attr { grid-template-columns: 1fr; } .hd-link { padding: 6px 6px; font-size: 11px; } }
       `}</style>
     </>
   );
