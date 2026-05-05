@@ -56,6 +56,23 @@ export default function Portfolio() {
     } catch (e) { /* ignore */ }
   }, []);
 
+  // Auto-refresh prices once when the page first loads with holdings
+  // We use a flag to prevent re-firing if holdings change later (e.g., user adds a position)
+  const [didInitialRefresh, setDidInitialRefresh] = useState(false);
+  useEffect(() => {
+    if (didInitialRefresh) return;
+    if (holdings.length === 0) return;
+    const hasRefreshable = holdings.some(h => h.type === 'stock' || h.type === 'etf');
+    if (!hasRefreshable) return;
+    // Defer slightly to let the page settle first
+    const timer = setTimeout(() => {
+      refreshAllPrices(true); // silent=true, no toast spam on page load
+      setDidInitialRefresh(true);
+    }, 500);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [holdings.length, didInitialRefresh]);
+
   useEffect(() => {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify({ version: 1, positions: holdings }));
@@ -69,6 +86,7 @@ export default function Portfolio() {
 
   const [lookupStatus, setLookupStatus] = useState(''); // '' | 'loading' | 'success' | 'error'
   const [refreshing, setRefreshing] = useState(false);
+  const [lastRefreshed, setLastRefreshed] = useState(null);
 
   const addPosition = () => {
     const tkr = form.tkr.trim().toUpperCase();
@@ -120,14 +138,15 @@ export default function Portfolio() {
   };
 
   // Refresh prices for all stock/ETF positions
-  const refreshAllPrices = async () => {
+  // silent=true: no toast notifications (used for auto-refresh on page load)
+  const refreshAllPrices = async (silent = false) => {
     const refreshable = holdings.filter(h => h.type === 'stock' || h.type === 'etf');
     if (refreshable.length === 0) {
-      showToast('No stocks or ETFs to refresh');
+      if (!silent) showToast('No stocks or ETFs to refresh');
       return;
     }
     setRefreshing(true);
-    showToast(`Refreshing ${refreshable.length} position${refreshable.length === 1 ? '' : 's'}...`);
+    if (!silent) showToast(`Refreshing ${refreshable.length} position${refreshable.length === 1 ? '' : 's'}...`);
     try {
       const tickers = refreshable.map(h => h.tkr).join(',');
       const r = await fetch(`/api/quote?ticker=${encodeURIComponent(tickers)}`);
@@ -143,10 +162,11 @@ export default function Portfolio() {
         return { ...h, price: live.price, chg: live.change || 0 };
       });
       setHoldings(newHoldings);
-      showToast(`Updated ${updated} of ${refreshable.length} position${refreshable.length === 1 ? '' : 's'}`);
+      setLastRefreshed(new Date());
+      if (!silent) showToast(`Updated ${updated} of ${refreshable.length} position${refreshable.length === 1 ? '' : 's'}`);
     } catch (err) {
       console.error('Refresh error:', err);
-      showToast(`Refresh failed: ${err.message}`);
+      if (!silent) showToast(`Refresh failed: ${err.message}`);
     } finally {
       setRefreshing(false);
     }
@@ -558,6 +578,27 @@ export default function Portfolio() {
             </div>
           )}
 
+          {/* DATA STATUS BANNER */}
+          {holdings.length > 0 && holdings.some(h => h.type === 'stock' || h.type === 'etf') && (
+            <div className="data-status">
+              <div className="ds-line">
+                <span className="ds-dot" />
+                {refreshing ? (
+                  <span className="ds-text">Fetching latest prices…</span>
+                ) : lastRefreshed ? (
+                  <span className="ds-text">
+                    Stock &amp; ETF prices last refreshed at <b>{lastRefreshed.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', second: '2-digit' })}</b>
+                  </span>
+                ) : (
+                  <span className="ds-text">Click <b>Refresh Prices</b> to fetch the latest stock &amp; ETF prices</span>
+                )}
+              </div>
+              <div className="ds-note">
+                EODHD data is 15-minute delayed · bonds and FX positions are not auto-refreshed
+              </div>
+            </div>
+          )}
+
           {/* HOLDINGS */}
           {holdings.length === 0 ? (
             <div className="empty">
@@ -722,6 +763,14 @@ export default function Portfolio() {
         .kpi-c.neg { color: #E95B4B; }
         .kpi-c-sub { font-family: var(--mono); font-size: 11.5px; opacity: .7; font-weight: 400; }
         .kpi-s { font-family: var(--mono); font-size: 11.5px; color: var(--ink-3); margin-top: 6px; letter-spacing: .02em; }
+
+        /* DATA STATUS BANNER */
+        .data-status { background: var(--paper-2); border: 1px solid var(--rule); border-left: 3px solid var(--accent); padding: 12px 18px; margin-bottom: 24px; display: flex; flex-direction: column; gap: 4px; }
+        .ds-line { display: flex; align-items: center; gap: 10px; font-family: var(--sans); font-size: 13px; color: var(--ink-2); }
+        .ds-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); animation: dsPulse 2s ease-in-out infinite; flex-shrink: 0; }
+        @keyframes dsPulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+        .ds-text :global(b) { color: var(--accent); font-weight: 600; }
+        .ds-note { font-family: var(--sans); font-style: italic; font-size: 11.5px; color: var(--ink-3); padding-left: 17px; }
 
         /* ── EMPTY ── */
         .empty { padding: 80px 24px 60px; text-align: center; background: var(--paper-2); border: 1px solid var(--rule); }
