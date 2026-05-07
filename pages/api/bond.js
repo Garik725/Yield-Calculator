@@ -39,16 +39,24 @@ export default async function handler(req, res) {
     return res.status(503).json({ error: 'Bond database unavailable' });
   }
 
+  // Apply currency filter if specified
+  let pool = bonds;
+  const currency = req.query.currency;
+  if (currency && currency !== 'ALL') {
+    const ccy = String(currency).trim().toUpperCase();
+    pool = bonds.filter(b => b.currency === ccy);
+  }
+
   if (req.query.isin) {
     const isin = String(req.query.isin).trim().toUpperCase();
-    const found = bonds.find(b => b.isin === isin);
+    const found = pool.find(b => b.isin === isin);
     if (!found) return res.status(404).json({ error: 'ISIN not found', isin });
     return res.status(200).json(found);
   }
 
   if (req.query.cusip) {
     const cusip = String(req.query.cusip).trim().toUpperCase();
-    const found = bonds.find(b => b.cusip === cusip);
+    const found = pool.find(b => b.cusip === cusip);
     if (!found) return res.status(404).json({ error: 'CUSIP not found', cusip });
     return res.status(200).json(found);
   }
@@ -58,7 +66,7 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Provide ?q=... or ?isin=... or ?cusip=...' });
   }
 
-  const scored = bonds
+  const scored = pool
     .map(b => ({ bond: b, score: scoreMatch(b, q) }))
     .filter(x => x.score > 0)
     .sort((a, b) => b.score - a.score)
@@ -66,6 +74,7 @@ export default async function handler(req, res) {
 
   return res.status(200).json({
     query: q,
+    currency: currency || 'ALL',
     count: scored.length,
     results: scored.map(x => x.bond),
   });
