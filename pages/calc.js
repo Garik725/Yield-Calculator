@@ -8,8 +8,31 @@ import {
 } from '../lib/bondMath';
 
 // ── Currency config ────────────────────────────────────────────────────────────
-const CURRENCIES = ['USD', 'EUR', 'GBP', 'AMD'];
-const CCY_SYMBOLS = { USD: '$', EUR: '€', GBP: '£', AMD: '֏' };
+const CCY_SYMBOLS = {
+  USD: '$', EUR: '€', GBP: '£', JPY: '¥', CHF: 'CHF',
+  AUD: 'A$', CAD: 'C$', NZD: 'NZ$',
+  CNY: 'CN¥', INR: '₹', RUB: '₽', TRY: '₺',
+  ZAR: 'R', BRL: 'R$', MXN: 'Mex$',
+  AMD: '֏',
+};
+const PINNED_CURRENCIES = ['USD', 'EUR', 'GBP', 'JPY', 'CHF', 'AUD', 'CAD'];
+const ALL_CURRENCIES = [
+  'AED', 'AMD', 'AOA', 'ARS', 'AUD', 'AZN', 'BDT', 'BRL', 'BWP',
+  'CAD', 'CHF', 'CLP', 'CNY', 'COP', 'CRC', 'CZK', 'DEM', 'DKK',
+  'DOP', 'EGP', 'EUR', 'GBP', 'GEL', 'GHS', 'GTQ', 'HKD', 'HNL',
+  'HUF', 'IDR', 'ILS', 'INR', 'ISK', 'JMD', 'JPY', 'KES', 'KGS',
+  'KRW', 'KZT', 'LBP', 'LKR', 'LSL', 'MDL', 'MNT', 'MUR', 'MWK',
+  'MXN', 'MYR', 'MZN', 'NAD', 'NGN', 'NOK', 'NZD', 'PEN', 'PHP',
+  'PKR', 'PLN', 'PYG', 'RON', 'RSD', 'RUB', 'RWF', 'SAR', 'SEK',
+  'SGD', 'SKK', 'SZL', 'THB', 'TND', 'TRY', 'TTD', 'TWD', 'TZS',
+  'UAH', 'UGX', 'USD', 'UYU', 'UZS', 'VES', 'VND', 'XAF', 'XOF',
+  'ZAR', 'ZMW',
+];
+const fmtCcy = (n, ccy, dp = 2) => {
+  const sym = CCY_SYMBOLS[ccy];
+  const formatted = n.toLocaleString('en-US', { minimumFractionDigits: dp, maximumFractionDigits: dp });
+  return sym ? `${sym}${formatted}` : `${ccy} ${formatted}`;
+};
 
 // ── Fallback bond database ─────────────────────────────────────────────────────
 const FALLBACK_DB = {
@@ -43,7 +66,17 @@ export default function Calc() {
   const [settleDate, setSettleDate] = useState('');
   const [faceStr, setFaceStr] = useState('1,000,000');
   const [face, setFace] = useState(1000000);
-  const [currency, setCurrency] = useState('USD');
+  const [currency, setCurrency] = useState('ALL');
+  const [ccyMenuOpen, setCcyMenuOpen] = useState(false);
+  const ccyMenuRef = useRef(null);
+
+  // Click outside to close currency menu
+  useEffect(() => {
+    if (!ccyMenuOpen) return;
+    const close = (e) => { if (ccyMenuRef.current && !ccyMenuRef.current.contains(e.target)) setCcyMenuOpen(false); };
+    document.addEventListener('mousedown', close);
+    return () => document.removeEventListener('mousedown', close);
+  }, [ccyMenuOpen]);
   const [priceInput, setPriceInput] = useState('');
   const [ytmInput, setYtmInput] = useState('');
   const [lastEdited, setLastEdited] = useState('ytm');
@@ -118,12 +151,13 @@ export default function Calc() {
       // PRIMARY: Search the real bond database (covers ~3000+ Treasuries + curated)
       try {
         let url;
+        const ccyParam = (currency && currency !== 'ALL') ? `&currency=${encodeURIComponent(currency)}` : '';
         if (isISIN) {
-          url = `/api/bond?isin=${encodeURIComponent(cleaned)}`;
+          url = `/api/bond?isin=${encodeURIComponent(cleaned)}${ccyParam}`;
         } else if (isCUSIP) {
-          url = `/api/bond?cusip=${encodeURIComponent(cleaned)}`;
+          url = `/api/bond?cusip=${encodeURIComponent(cleaned)}${ccyParam}`;
         } else {
-          url = `/api/bond?q=${encodeURIComponent(val.trim())}`;
+          url = `/api/bond?q=${encodeURIComponent(val.trim())}${ccyParam}`;
         }
         const res = await fetch(url);
         if (res.ok) {
@@ -180,14 +214,15 @@ export default function Calc() {
 
       setSearching(false);
     }, 350);
-  }, []);
+  }, [currency]);
 
   // ── Load bond ───────────────────────────────────────────────────────────────
   const loadBond = useCallback((b) => {
     setBond(b);
     setIsinInput(`${b.isin} · ${b.name}`);
     setShowDrop(false);
-    setCurrency(b.ccy || 'USD');
+    // Bond currency: try ccy (FALLBACK_DB), then currency (database), default USD
+    setCurrency(b.ccy || b.currency || 'USD');
     const approx = b.coupon / 100 + 0.005;
     setYtmInput((approx * 100).toFixed(3));
     setPriceInput('');
@@ -695,9 +730,21 @@ export default function Calc() {
         .btn-load:hover{background:#1040AA;}
         .btn-cancel{background:transparent;color:var(--text2);border:1.5px solid var(--border2);border-radius:8px;padding:10px 16px;font-size:13px;font-weight:600;cursor:pointer;margin-left:8px;}
         .btn-cancel:hover{border-color:var(--text2);}
-        .ccy-bar{display:flex;gap:6px;margin-left:auto;}
-        .ccy-btn{padding:4px 10px;border-radius:5px;border:1px solid var(--border2);font-size:11px;font-weight:600;background:transparent;color:var(--text2);cursor:pointer;transition:all .13s;}
+        .ccy-bar{display:flex;gap:6px;margin-left:auto;align-items:center;flex-wrap:wrap;max-width:560px;}
+        .ccy-btn{padding:4px 10px;border-radius:5px;border:1px solid var(--border2);font-size:11px;font-weight:600;background:transparent;color:var(--text2);cursor:pointer;transition:all .13s;white-space:nowrap;}
         .ccy-btn.on{background:var(--blue);color:#fff;border-color:var(--blue);}
+        .ccy-btn:hover{border-color:var(--blue);}
+        .ccy-more-wrap{position:relative;display:inline-block;}
+        .ccy-more-btn{display:flex;align-items:center;gap:3px;}
+        .ccy-caret{font-size:9px;opacity:.6;}
+        .ccy-dropdown{position:absolute;top:calc(100% + 4px);right:0;background:var(--surface);border:1px solid var(--border2);box-shadow:0 6px 20px rgba(0,0,0,.12);border-radius:5px;z-index:200;max-height:380px;overflow-y:auto;display:grid;grid-template-columns:repeat(4,1fr);gap:1px;padding:4px;min-width:240px;}
+        .ccy-option{padding:7px 10px;font-family:var(--mono);font-size:11px;font-weight:600;color:var(--text2);cursor:pointer;text-align:center;border-radius:3px;transition:all .1s;}
+        .ccy-option:hover{background:var(--blue-dim);color:var(--blue);}
+        .ccy-option.on{background:var(--blue);color:#fff;}
+        @media (max-width: 700px){
+          .ccy-bar{max-width:100%;flex-basis:100%;order:5;justify-content:flex-start;padding:6px 0;border-top:1px solid var(--border);margin-top:4px;}
+          .ccy-dropdown{grid-template-columns:repeat(3,1fr);right:auto;left:0;}
+        }
         @media(max-width:600px){.row{flex-direction:column;}.or-sep{padding:0;}.mp-grid{grid-template-columns:1fr 1fr;}.mp-grid-2{grid-template-columns:1fr;}.info-bar{flex-wrap:wrap;}.ib-cell{min-width:50%;}}
       `}</style>
 
@@ -798,10 +845,33 @@ export default function Calc() {
             </div>
           )}
         </div>
-        <div className="ccy-bar">
-          {CURRENCIES.map(c => (
+        <div className="ccy-bar" ref={ccyMenuRef}>
+          <button className={`ccy-btn${currency==='ALL'?' on':''}`} onClick={() => setCurrency('ALL')}>All</button>
+          {PINNED_CURRENCIES.map(c => (
             <button key={c} className={`ccy-btn${currency===c?' on':''}`} onClick={() => setCurrency(c)}>{c}</button>
           ))}
+          <div className="ccy-more-wrap">
+            <button
+              className={`ccy-btn ccy-more-btn${(!PINNED_CURRENCIES.includes(currency) && currency !== 'ALL') ? ' on' : ''}`}
+              onClick={() => setCcyMenuOpen(!ccyMenuOpen)}
+              title="More currencies"
+            >
+              {(!PINNED_CURRENCIES.includes(currency) && currency !== 'ALL') ? currency : 'More'} <span className="ccy-caret">▾</span>
+            </button>
+            {ccyMenuOpen && (
+              <div className="ccy-dropdown">
+                {ALL_CURRENCIES.filter(c => !PINNED_CURRENCIES.includes(c)).map(c => (
+                  <div
+                    key={c}
+                    className={`ccy-option${currency===c?' on':''}`}
+                    onClick={() => { setCurrency(c); setCcyMenuOpen(false); }}
+                  >
+                    {c}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
         {view === 'calc' ? (
           <button onClick={switchToPnL} style={{display:'flex',alignItems:'center',gap:7,padding:'8px 16px',background:'transparent',color:'var(--blue)',border:'1.5px solid var(--blue)',borderRadius:8,fontSize:12.5,fontWeight:700,cursor:'pointer',whiteSpace:'nowrap'}}>
@@ -873,7 +943,7 @@ export default function Calc() {
               <div className="mf">
                 <div className="mfl">Currency</div>
                 <select className="mfi" value={manualForm.ccy} onChange={e => setManualForm(f=>({...f,ccy:e.target.value}))}>
-                  {CURRENCIES.map(c => <option key={c} value={c}>{c}</option>)}
+                  {ALL_CURRENCIES.map(c => <option key={c} value={c}>{c}</option>)}
                 </select>
               </div>
             </div>
