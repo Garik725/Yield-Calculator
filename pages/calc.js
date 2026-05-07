@@ -98,7 +98,7 @@ export default function Calc() {
 
     if (val.length < 2) { setSearchResults([]); return; }
 
-    // First check fallback DB
+    // First check local fallback DB (instant — used if API is slow/unavailable)
     const q = val.toLowerCase().replace(/\s/g, '');
     const local = Object.entries(FALLBACK_DB).filter(([isin, b]) =>
       isin.toLowerCase().includes(q) ||
@@ -108,58 +108,78 @@ export default function Calc() {
 
     if (local.length > 0) setSearchResults(local);
 
-    // Then fetch from API
+    // Then fetch from APIs
     debounceRef.current = setTimeout(async () => {
       setSearching(true);
-
-      // Check if input looks like ISIN (12 chars, starts with 2 letters) or CUSIP (9 chars)
       const cleaned = val.trim().toUpperCase();
       const isISIN = /^[A-Z]{2}[A-Z0-9]{9}[0-9]$/.test(cleaned);
       const isCUSIP = /^[A-Z0-9]{9}$/.test(cleaned);
 
-      // If looks like ISIN/CUSIP and not in local DB, try OpenFIGI
-      if ((isISIN || isCUSIP) && !FALLBACK_DB[cleaned]) {
-        try {
-          const figRes = await fetch(`/api/openfigi?id=${encodeURIComponent(cleaned)}`);
-          if (figRes.ok) {
-            const figData = await figRes.json();
-            if (figData.valid) {
-              setSearchResults(prev => {
-                const exists = prev.find(r => r.isin === figData.id);
-                if (exists) return prev;
-                return [{
-                  isin: figData.id,
-                  name: figData.name,
-                  issuer: figData.issuer,
-                  type: figData.securityType,
-                  rating: '–',
-                  // No coupon/maturity — user must enter manually
-                  needsManualEntry: true,
-                  source: 'openfigi',
-                  isBond: figData.isBond,
-                }, ...prev].slice(0, 6);
-              });
-            }
-          }
-        } catch (e) { /* silent */ }
-      }
-
-      // Also try the legacy bond API (currently a stub but keeps door open)
+      // PRIMARY: Search the real bond database (covers ~3000+ Treasuries + curated)
       try {
-        const res = await fetch(`/api/bond?isin=${encodeURIComponent(val.trim())}`);
+        let url;
+        if (isISIN) {
+          url = `/api/bond?isin=${encodeURIComponent(cleaned)}`;
+        } else if (isCUSIP) {
+          url = `/api/bond?cusip=${encodeURIComponent(cleaned)}`;
+        } else {
+          url = `/api/bond?q=${encodeURIComponent(val.trim())}`;
+        }
+        const res = await fetch(url);
         if (res.ok) {
           const data = await res.json();
-          if (data && data.isin) {
+          // Single ISIN/CUSIP match returns the bond directly
+          if (data && data.isin && !data.results) {
             setSearchResults(prev => {
               const exists = prev.find(r => r.isin === data.isin);
               if (exists) return prev;
-              return [{ ...data, source: 'api' }, ...prev].slice(0, 6);
+              return [{ ...data, source: 'database' }, ...prev].slice(0, 8);
+            });
+          }
+          // Query search returns { results: [...] }
+          else if (data && Array.isArray(data.results) && data.results.length > 0) {
+            setSearchResults(prev => {
+              // Merge results, dedupe by ISIN, prefer database results
+              const dbResults = data.results.map(b => ({ ...b, source: 'database' }));
+              const localOnly = prev.filter(p => p.source === 'local' && !dbResults.find(d => d.isin === p.isin));
+              return [...dbResults, ...localOnly].slice(0, 8);
             });
           }
         }
       } catch (e) { /* silent */ }
+
+      // SECONDARY: OpenFIGI for ISINs not in our database
+      // Only fires for valid-format ISINs/CUSIPs that the database didn't find
+      if (isISIN || isCUSIP) {
+        const stillNotFound = !searchResults.find(r => r.isin === cleaned || r.cusip === cleaned);
+        if (stillNotFound) {
+          try {
+            const figRes = await fetch(`/api/openfigi?id=${encodeURIComponent(cleaned)}`);
+            if (figRes.ok) {
+              const figData = await figRes.json();
+              if (figData.valid) {
+                setSearchResults(prev => {
+                  const exists = prev.find(r => r.isin === figData.id);
+                  if (exists) return prev;
+                  return [...prev, {
+                    isin: figData.id,
+                    name: figData.name,
+                    issuer: figData.issuer,
+                    type: figData.securityType,
+                    rating: '–',
+                    needsManualEntry: true,
+                    source: 'openfigi',
+                    isBond: figData.isBond,
+                  }].slice(0, 8);
+                });
+              }
+            }
+          } catch (e) { /* silent */ }
+        }
+      }
+
       setSearching(false);
-    }, 400);
+    }, 350);
   }, []);
 
   // ── Load bond ───────────────────────────────────────────────────────────────
@@ -741,7 +761,7 @@ export default function Calc() {
                 }
                 return (
                   <div key={b.isin} className="ditem" onClick={() => loadBond(b)}>
-                    <div className="ditem-isin">{b.isin} {b.source === 'api' && <span style={{color:'var(--green)',fontSize:'9px'}}>● LIVE</span>}</div>
+                    <div className="ditem-isin">{b.isin} {b.source === 'database' && <span style={{color:'var(--green)',fontSize:'9px'}}>● DATABASE</span>}{b.source === 'api' && <span style={{color:'var(--green)',fontSize:'9px'}}>● LIVE</span>}</div>
                     <div className="ditem-name">{b.name}</div>
                     <div className="ditem-meta">{b.coupon?.toFixed(3)}% · {b.maturity} · {b.rating} · {b.type}</div>
                   </div>
@@ -822,8 +842,10 @@ export default function Calc() {
               <div className="mf">
                 <div className="mfl">Day Count Convention</div>
                 <select className="mfi" value={manualForm.dc} onChange={e => setManualForm(f=>({...f,dc:e.target.value}))}>
-                  <option value="30/360">30/360 (Corporate)</option>
-                  <option value="ACT/ACT">ACT/ACT (Government)</option>
+                  <option value="30/360">30/360 (US Corporate)</option>
+                  <option value="ACT/ACT">ACT/ACT (US Treasury)</option>
+                  <option value="ACT/365">ACT/365 (UK Gilts, AU/NZ)</option>
+                  <option value="ACT/360">ACT/360 (Money Market)</option>
                 </select>
               </div>
               <div className="mf">
