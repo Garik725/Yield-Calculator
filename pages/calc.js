@@ -651,13 +651,35 @@ export default function Calc() {
         .btn-export{display:flex;align-items:center;gap:7px;padding:11px 22px;background:var(--blue);color:#fff;border:none;border-radius:9px;font-size:13px;font-weight:700;cursor:pointer;transition:background .14s;}
         .btn-export:hover{background:#1040AA;}
         .pdf-status{font-size:11.5px;color:var(--green);}
-        .empty{text-align:center;padding:60px 20px;}
-        .empty-icon{font-size:36px;opacity:.15;margin-bottom:16px;}
-        .empty-h{font-size:18px;font-weight:600;color:var(--text2);margin-bottom:8px;}
-        .empty-s{font-size:13px;color:var(--text3);margin-bottom:22px;}
-        .chips{display:flex;flex-wrap:wrap;gap:7px;justify-content:center;}
-        .chip{padding:5px 12px;border:1px solid var(--border2);border-radius:5px;font-size:11.5px;font-family:var(--mono);color:var(--text2);cursor:pointer;background:var(--surface);transition:all .13s;}
-        .chip:hover{border-color:var(--blue);color:var(--blue);background:var(--blue-dim);}
+        .empty{padding:60px 20px;max-width:1100px;margin:0 auto;}
+        .empty-hero{text-align:center;margin-bottom:36px;}
+        .empty-h{font-family:var(--display, 'Fraunces', serif);font-weight:500;font-size:34px;letter-spacing:-.018em;color:var(--text);margin-bottom:10px;line-height:1.15;}
+        .empty-s{font-size:14px;color:var(--text3);max-width:560px;margin:0 auto;line-height:1.5;}
+
+        .bond-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px;}
+        .bond-card{padding:18px;border:1px solid var(--border2);background:var(--surface);cursor:pointer;display:flex;flex-direction:column;gap:8px;transition:all .15s;position:relative;}
+        .bond-card:hover{border-color:var(--blue);box-shadow:0 2px 8px rgba(23,85,204,.08);transform:translateY(-1px);}
+        .bond-card.manual-card{background:linear-gradient(135deg,var(--blue-dim) 0%,transparent 60%);border-color:var(--blue);border-style:dashed;}
+        .bond-card.manual-card:hover{background:var(--blue-dim);border-style:solid;}
+        .bc-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:2px;}
+        .bc-tag{font-family:var(--mono);font-size:9px;font-weight:600;letter-spacing:.08em;padding:3px 8px;text-transform:uppercase;border-radius:2px;}
+        .bc-tag.gov{background:#E8F1E5;color:#2E6B3E;}
+        .bc-tag.corp{background:#FCF1E0;color:#9D7E3E;}
+        .bc-tag.manual{background:#fff;color:var(--blue);border:1px solid var(--blue);}
+        .bc-rating{font-family:var(--mono);font-size:10.5px;font-weight:600;color:var(--text3);}
+        .bc-name{font-family:var(--display,serif);font-size:16px;font-weight:500;color:var(--text);line-height:1.25;letter-spacing:-.01em;}
+        .bc-meta{font-size:12px;color:var(--text2);display:flex;align-items:center;gap:8px;}
+        .bc-coupon{font-family:var(--mono);font-weight:600;color:var(--text);font-size:13px;}
+        .bc-sep{color:var(--text3);}
+        .bc-mat{font-style:italic;color:var(--text3);}
+        .bc-meta-manual{font-size:12.5px;color:var(--text2);line-height:1.4;font-style:italic;}
+        .bc-isin{font-family:var(--mono);font-size:10.5px;color:var(--text3);letter-spacing:.04em;margin-top:auto;padding-top:8px;border-top:1px solid var(--border);}
+        .manual-card .bc-isin{color:var(--blue);font-size:18px;text-align:right;border-top:none;padding-top:4px;}
+
+        @media (max-width: 600px){
+          .empty-h{font-size:26px;}
+          .bond-cards{grid-template-columns:1fr;}
+        }
         .manual-panel{background:var(--surface);border:1.5px solid var(--border2);border-radius:12px;padding:20px;margin-bottom:14px;}
         .mp-title{font-size:14px;font-weight:700;margin-bottom:4px;}
         .mp-sub{font-size:12px;color:var(--text3);margin-bottom:16px;}
@@ -860,16 +882,40 @@ export default function Calc() {
           </div>
         )}
 
-        {/* EMPTY STATE */}
+        {/* EMPTY STATE — Welcome screen with sample bonds */}
         {!bond && !manualMode && (
           <div className="empty">
-            <div className="empty-icon">◈</div>
-            <div className="empty-h">Enter an ISIN to calculate settlement</div>
-            <div className="empty-s">Search any bond · or type an ISIN and press Enter to input details manually</div>
-            <div className="chips">
+            <div className="empty-hero">
+              <div className="empty-h">Calculate yield for any bond</div>
+              <div className="empty-s">Pick a sample below, search 16,000+ bonds in the box above, or enter custom details manually.</div>
+            </div>
+
+            <div className="bond-cards">
               {Object.entries(FALLBACK_DB).map(([isin, b]) => (
-                <div key={isin} className="chip" onClick={() => loadBond({...b, isin})}>{isin}</div>
+                <div key={isin} className="bond-card" onClick={() => loadBond({...b, isin})}>
+                  <div className="bc-top">
+                    <span className={`bc-tag ${b.type === 'Government' ? 'gov' : 'corp'}`}>{b.type}</span>
+                    <span className="bc-rating">{b.rating}</span>
+                  </div>
+                  <div className="bc-name">{b.name}</div>
+                  <div className="bc-meta">
+                    <span className="bc-coupon">{b.coupon.toFixed(3)}%</span>
+                    <span className="bc-sep">·</span>
+                    <span className="bc-mat">Matures {b.maturity.substring(0,4)}</span>
+                  </div>
+                  <div className="bc-isin">{isin}</div>
+                </div>
               ))}
+              <div className="bond-card manual-card" onClick={() => setManualMode(true)}>
+                <div className="bc-top">
+                  <span className="bc-tag manual">Custom</span>
+                </div>
+                <div className="bc-name">Enter your own bond</div>
+                <div className="bc-meta-manual">
+                  Type ISIN, coupon, maturity, day-count manually for any bond not found in the catalog.
+                </div>
+                <div className="bc-isin">→</div>
+              </div>
             </div>
           </div>
         )}
