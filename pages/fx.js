@@ -114,21 +114,7 @@ export default function FX() {
       </Head>
 
       <style jsx global>{`
-        :root {
-          --paper: #F8F4EA; --paper-2: #FBF8F0; --paper-3: #EFE9DA;
-          --ink: #1A1815; --ink-2: #3D3A33; --ink-3: #6B6760; --ink-4: #8E8A82;
-          --rule: #DDD5BF; --rule-soft: #E8E2D0;
-          --accent: #214B3D; --accent-2: #2E6B5A; --accent-soft: #E5ECE7;
-          --gold: #9D7E3E; --gold-soft: #F0E8D4;
-          --bull: #1F5E40; --bear: #A33D2E;
-          --display: 'Fraunces', Georgia, serif;
-          --sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-          --mono: 'JetBrains Mono', ui-monospace, monospace;
-          --col: 1240px; --pad: clamp(20px, 4vw, 40px);
-        }
-        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-        html { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
-        body { background: var(--paper); color: var(--ink); font-family: var(--sans); font-size: 16px; line-height: 1.6; min-height: 100vh; }
+                /* Design tokens are defined globally in styles/globals.css */
         a { color: inherit; text-decoration: none; }
         button { font-family: inherit; border: none; background: none; cursor: pointer; color: inherit; }
         input, select { font-family: var(--sans); }
@@ -350,7 +336,7 @@ export default function FX() {
 
       <style jsx>{`
         /* HEADER (matches other module pages) */
-        .hd { position: sticky; top: 0; z-index: 100; background: rgba(248,244,234,.92); backdrop-filter: blur(12px); border-bottom: 1px solid var(--rule); }
+        .hd { position: sticky; top: 0; z-index: 100; background: rgba(246,248,250,.92); backdrop-filter: blur(12px); border-bottom: 1px solid var(--rule); }
         .hd-inner { max-width: var(--col); margin: 0 auto; padding: 16px var(--pad); display: flex; align-items: center; gap: 32px; }
         .hd-brand { display: flex; align-items: center; gap: 12px; }
         .hd-mark { width: 32px; height: 32px; background: var(--accent); color: var(--paper); display: flex; align-items: center; justify-content: center; font-family: var(--display); font-weight: 700; font-size: 13px; letter-spacing: -.02em; }
@@ -406,10 +392,10 @@ export default function FX() {
         .conv-side { display: flex; flex-direction: column; gap: 8px; }
         .conv-label { font-family: var(--sans); font-size: 10.5px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; color: var(--ink-3); }
         .conv-input-row { display: flex; gap: 12px; align-items: stretch; }
-        .conv-amount, .conv-result { flex: 1; padding: 16px 18px; background: var(--paper); border: 1px solid var(--rule); font-family: var(--mono); font-size: 22px; font-weight: 600; color: var(--ink); outline: none; transition: border-color .15s; min-width: 0; }
-        .conv-amount:focus { border-color: var(--accent); }
-        .conv-result { background: var(--accent-soft); color: var(--accent); border-color: var(--accent-soft); display: flex; align-items: center; justify-content: flex-end; }
-        .conv-ccy { padding: 16px 14px; background: var(--ink); color: var(--paper); border: 1px solid var(--ink); font-family: var(--mono); font-size: 14px; font-weight: 600; letter-spacing: .04em; cursor: pointer; }
+        .conv-amount, .conv-result { flex: 1; padding: 16px 18px; background: var(--bg); border: 1.5px solid var(--border2); border-radius: 9px; font-family: var(--mono); font-size: 22px; font-weight: 600; color: var(--text); outline: none; transition: all .15s; min-width: 0; }
+        .conv-amount:focus { border-color: var(--blue); background: var(--surface); }
+        .conv-result { background: var(--blue-dim); color: var(--blue); border-color: var(--blue-dim); display: flex; align-items: center; justify-content: flex-end; }
+        .conv-ccy { padding: 16px 14px; background: var(--text); color: #fff; border: 1.5px solid var(--text); border-radius: 9px; font-family: var(--mono); font-size: 14px; font-weight: 600; letter-spacing: .04em; cursor: pointer; }
         .conv-name { font-family: var(--sans); font-style: italic; font-size: 13px; color: var(--ink-3); padding-left: 4px; }
         .conv-swap { padding: 14px; font-size: 24px; color: var(--accent); cursor: pointer; transition: transform .2s; align-self: center; }
         .conv-swap:hover { transform: rotate(180deg); }
