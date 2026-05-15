@@ -666,7 +666,7 @@ export default function Portfolio() {
 
       <style jsx>{`
         /* ── HEADER ── */
-        .hd { position: sticky; top: 0; z-index: 100; background: rgba(248, 244, 234, 0.92); backdrop-filter: blur(12px); border-bottom: 1px solid var(--rule); }
+        .hd { position: sticky; top: 0; z-index: 100; background: rgba(246, 248, 250, 0.92); backdrop-filter: blur(12px); border-bottom: 1px solid var(--rule); }
         .hd-inner { max-width: var(--col); margin: 0 auto; padding: 16px var(--pad); display: flex; align-items: center; gap: 32px; }
         .hd-brand { display: flex; align-items: center; gap: 12px; }
         .hd-mark { width: 32px; height: 32px; background: var(--accent); color: var(--paper); display: flex; align-items: center; justify-content: center; font-family: var(--display); font-weight: 700; font-size: 13px; letter-spacing: -.02em; }
