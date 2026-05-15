@@ -143,21 +143,7 @@ export default function Curve() {
       </Head>
 
       <style jsx global>{`
-        :root {
-          --paper: #F8F4EA; --paper-2: #FBF8F0; --paper-3: #EFE9DA;
-          --ink: #1A1815; --ink-2: #3D3A33; --ink-3: #6B6760; --ink-4: #8E8A82;
-          --rule: #DDD5BF; --rule-soft: #E8E2D0;
-          --accent: #214B3D; --accent-2: #2E6B5A; --accent-soft: #E5ECE7;
-          --gold: #9D7E3E; --gold-soft: #F0E8D4;
-          --bull: #1F5E40; --bear: #A33D2E;
-          --display: 'Fraunces', Georgia, serif;
-          --sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-          --mono: 'JetBrains Mono', ui-monospace, monospace;
-          --col: 1240px; --pad: clamp(20px, 4vw, 40px);
-        }
-        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-        html { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
-        body { background: var(--paper); color: var(--ink); font-family: var(--sans); font-size: 16px; line-height: 1.6; min-height: 100vh; }
+                /* Design tokens are defined globally in styles/globals.css */
         a { color: inherit; text-decoration: none; }
         button { font-family: inherit; border: none; background: none; cursor: pointer; color: inherit; }
         input { font-family: var(--sans); }
@@ -227,7 +213,7 @@ export default function Curve() {
                     </linearGradient>
                   </defs>
 
-                  <g stroke="#DDD5BF" strokeWidth="0.5" fontFamily="Inter" fontSize="10" fill="#8E8A82">
+                  <g stroke="#E2E6EB" strokeWidth="0.5" fontFamily="Inter" fontSize="10" fill="#8E8A82">
                     {[5.40, 5.00, 4.60, 4.20, 3.80].map((v, i) => (
                       <g key={v}>
                         <line x1="80" y1={yOf(v)} x2="1060" y2={yOf(v)} strokeDasharray={i === 0 || i === 4 ? null : '2 3'} />
@@ -254,7 +240,7 @@ export default function Curve() {
                   <g fill="#214B3D">
                     {TENORS.map(tn => <circle key={tn} cx={TENOR_X[tn]} cy={yOf(t[tn])} r="4" />)}
                   </g>
-                  <g fill="#F8F4EA" stroke="#214B3D" strokeWidth="1.6">
+                  <g fill="#FFFFFF" stroke="#0E4F6E" strokeWidth="1.6">
                     <circle cx={TENOR_X['5Y']} cy={yOf(t['5Y'])} r="6" />
                     <circle cx={TENOR_X['10Y']} cy={yOf(t['10Y'])} r="6" />
                   </g>
@@ -383,7 +369,7 @@ export default function Curve() {
 
       <style jsx>{`
         /* HEADER */
-        .hd { position: sticky; top: 0; z-index: 100; background: rgba(248,244,234,.92); backdrop-filter: blur(12px); border-bottom: 1px solid var(--rule); }
+        .hd { position: sticky; top: 0; z-index: 100; background: rgba(246,248,250,.92); backdrop-filter: blur(12px); border-bottom: 1px solid var(--rule); }
         .hd-inner { max-width: var(--col); margin: 0 auto; padding: 16px var(--pad); display: flex; align-items: center; gap: 32px; }
         .hd-brand { display: flex; align-items: center; gap: 12px; }
         .hd-mark { width: 32px; height: 32px; background: var(--accent); color: var(--paper); display: flex; align-items: center; justify-content: center; font-family: var(--display); font-weight: 700; font-size: 13px; letter-spacing: -.02em; }
