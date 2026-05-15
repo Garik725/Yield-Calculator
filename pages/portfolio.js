@@ -422,31 +422,7 @@ export default function Portfolio() {
       </Head>
 
       <style jsx global>{`
-        :root {
-          --paper: #F8F4EA;
-          --paper-2: #FBF8F0;
-          --paper-3: #EFE9DA;
-          --ink: #1A1815;
-          --ink-2: #3D3A33;
-          --ink-3: #6B6760;
-          --ink-4: #8E8A82;
-          --rule: #DDD5BF;
-          --rule-soft: #E8E2D0;
-          --accent: #214B3D;
-          --accent-2: #2E6B5A;
-          --accent-soft: #E5ECE7;
-          --gold: #9D7E3E;
-          --bull: #1F5E40;
-          --bear: #A33D2E;
-          --display: 'Fraunces', Georgia, serif;
-          --sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-          --mono: 'JetBrains Mono', ui-monospace, monospace;
-          --col: 1240px;
-          --pad: clamp(20px, 4vw, 40px);
-        }
-        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-        html { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
-        body { background: var(--paper); color: var(--ink); font-family: var(--sans); font-size: 16px; line-height: 1.6; min-height: 100vh; }
+                /* Design tokens are defined globally in styles/globals.css */
         a { color: inherit; text-decoration: none; }
         button { font-family: inherit; border: none; background: none; cursor: pointer; color: inherit; }
         input, select { font-family: var(--sans); }
@@ -718,10 +694,10 @@ export default function Portfolio() {
         .page-lede { font-family: var(--sans); font-size: 16px; line-height: 1.6; color: var(--ink-2); max-width: 620px; }
 
         .head-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: flex-end; }
-        .btn-ghost { padding: 9px 16px; border: 1px solid var(--rule); background: var(--paper-2); color: var(--ink-2); font-family: var(--sans); font-size: 12px; font-weight: 500; letter-spacing: .02em; transition: all .15s; }
-        .btn-ghost:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
-        .btn-ghost.danger:hover { border-color: var(--bear); color: var(--bear); background: #FCEDE9; }
-        .btn-ghost.refresh:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
+        .btn-ghost { padding: 9px 16px; border: 1px solid var(--border); background: var(--surface); color: var(--text2); font-family: var(--sans); font-size: 12px; font-weight: 500; letter-spacing: .02em; border-radius: 7px; transition: all .15s; }
+        .btn-ghost:hover { border-color: var(--blue); color: var(--blue); background: var(--blue-dim); }
+        .btn-ghost.danger:hover { border-color: var(--red); color: var(--red); background: var(--red-dim); }
+        .btn-ghost.refresh:hover { border-color: var(--blue); color: var(--blue); background: var(--blue-dim); }
         .btn-ghost:disabled { opacity: 0.5; cursor: wait; }
         .ticker-wrap { position: relative; display: flex; align-items: center; }
         .ticker-wrap input { flex: 1; padding-right: 80px; }
@@ -730,8 +706,8 @@ export default function Portfolio() {
         .lookup-tag.success { color: var(--bull); background: var(--accent-soft); }
         .lookup-tag.error { color: var(--bear); background: #FCEDE9; }
 
-        .btn-fill { display: inline-block; padding: 12px 28px; background: var(--accent); color: var(--paper); font-family: var(--sans); font-weight: 500; font-size: 13.5px; letter-spacing: .01em; transition: background .15s; margin-top: 16px; }
-        .btn-fill:hover { background: var(--accent-2); }
+        .btn-fill { display: inline-block; padding: 12px 28px; background: var(--blue); color: #fff; font-family: var(--sans); font-weight: 600; font-size: 13.5px; letter-spacing: .01em; border-radius: 9px; transition: background .15s; margin-top: 16px; }
+        .btn-fill:hover { background: var(--blue-deep); }
 
         /* ── ADD FORM ── */
         .add-card { background: var(--paper-2); border: 1px solid var(--rule); padding: 24px 28px; margin-bottom: 28px; }
@@ -739,14 +715,14 @@ export default function Portfolio() {
         .add-row { display: grid; grid-template-columns: 1.4fr 1fr 1fr 1fr 0.9fr; gap: 14px; align-items: end; }
         .field { display: flex; flex-direction: column; gap: 6px; }
         .field label { font-family: var(--sans); font-size: 10.5px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--ink-3); }
-        .field input, .field select { padding: 10px 12px; background: var(--paper); border: 1px solid var(--rule); font-family: var(--mono); font-size: 13.5px; color: var(--ink); outline: none; transition: border-color .15s; }
-        .field input:focus, .field select:focus { border-color: var(--accent); }
-        .field input::placeholder { color: var(--ink-4); }
+        .field input, .field select { padding: 10px 12px; background: var(--bg); border: 1.5px solid var(--border2); border-radius: 7px; font-family: var(--mono); font-size: 13.5px; color: var(--text); outline: none; transition: all .15s; }
+        .field input:focus, .field select:focus { border-color: var(--blue); background: var(--surface); }
+        .field input::placeholder { color: var(--text3); }
         .add-actions { display: flex; justify-content: space-between; align-items: center; gap: 24px; margin-top: 18px; padding-top: 18px; border-top: 1px solid var(--rule); flex-wrap: wrap; }
         .add-hint { font-family: var(--sans); font-size: 12.5px; color: var(--ink-3); font-style: italic; line-height: 1.5; flex: 1; min-width: 280px; margin: 0; }
         .add-hint :global(b) { color: var(--ink); font-weight: 600; font-style: normal; }
-        .btn-add { padding: 11px 24px; background: var(--accent); color: var(--paper); font-family: var(--sans); font-weight: 500; font-size: 13px; letter-spacing: .02em; white-space: nowrap; transition: background .15s; }
-        .btn-add:hover { background: var(--accent-2); }
+        .btn-add { padding: 11px 24px; background: var(--blue); color: #fff; font-family: var(--sans); font-weight: 600; font-size: 13px; letter-spacing: .02em; white-space: nowrap; border-radius: 9px; transition: background .15s; }
+        .btn-add:hover { background: var(--blue-deep); }
 
         /* ── KPIs ── */
         .kpis { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 1px; background: var(--rule); border: 1px solid var(--rule); margin-bottom: 28px; }
