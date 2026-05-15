@@ -771,9 +771,15 @@ export default function Calc() {
         .ccy-option{padding:7px 10px;font-family:var(--mono);font-size:11px;font-weight:600;color:var(--text2);cursor:pointer;text-align:center;border-radius:3px;transition:all .1s;}
         .ccy-option:hover{background:var(--blue-dim);color:var(--blue);}
         .ccy-option.on{background:var(--blue);color:#fff;}
+
+        /* ── Locked currency badge: shown when a database/sample bond is loaded ── */
+        .ccy-locked{display:inline-flex;align-items:center;gap:8px;margin-left:auto;padding:5px 11px 5px 9px;background:var(--blue-dim);border:1px solid var(--blue);border-radius:6px;cursor:default;}
+        .ccy-locked-code{font-family:var(--mono);font-size:12px;font-weight:700;letter-spacing:.04em;color:var(--blue);}
+        .ccy-locked-label{font-size:9.5px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--text3);}
         @media (max-width: 700px){
           .ccy-bar{max-width:100%;flex-basis:100%;order:5;justify-content:flex-start;padding:6px 0;border-top:1px solid var(--border);margin-top:4px;}
           .ccy-dropdown{grid-template-columns:repeat(3,1fr);right:auto;left:0;}
+          .ccy-locked-label{display:none;}
           .clock{display:none;}
           .topbar{flex-wrap:wrap;height:auto;min-height:52px;padding:8px 14px;gap:10px;}
           .search-wrap{flex-basis:100%;order:3;max-width:100%;}
@@ -889,34 +895,41 @@ export default function Calc() {
             </div>
           )}
         </div>
-        <div className="ccy-bar" ref={ccyMenuRef}>
-          <button className={`ccy-btn${currency==='ALL'?' on':''}`} onClick={() => setCurrency('ALL')}>All</button>
-          {PINNED_CURRENCIES.map(c => (
-            <button key={c} className={`ccy-btn${currency===c?' on':''}`} onClick={() => setCurrency(c)}>{c}</button>
-          ))}
-          <div className="ccy-more-wrap">
-            <button
-              className={`ccy-btn ccy-more-btn${(!PINNED_CURRENCIES.includes(currency) && currency !== 'ALL') ? ' on' : ''}`}
-              onClick={() => setCcyMenuOpen(!ccyMenuOpen)}
-              title="More currencies"
-            >
-              {(!PINNED_CURRENCIES.includes(currency) && currency !== 'ALL') ? currency : 'More'} <span className="ccy-caret">▾</span>
-            </button>
-            {ccyMenuOpen && (
-              <div className="ccy-dropdown">
-                {ALL_CURRENCIES.filter(c => !PINNED_CURRENCIES.includes(c)).map(c => (
-                  <div
-                    key={c}
-                    className={`ccy-option${currency===c?' on':''}`}
-                    onClick={() => { setCurrency(c); setCcyMenuOpen(false); }}
-                  >
-                    {c}
-                  </div>
-                ))}
-              </div>
-            )}
+        {(!bond || bond.type === 'Manual Entry') ? (
+          <div className="ccy-bar" ref={ccyMenuRef}>
+            <button className={`ccy-btn${currency==='ALL'?' on':''}`} onClick={() => setCurrency('ALL')}>All</button>
+            {PINNED_CURRENCIES.map(c => (
+              <button key={c} className={`ccy-btn${currency===c?' on':''}`} onClick={() => setCurrency(c)}>{c}</button>
+            ))}
+            <div className="ccy-more-wrap">
+              <button
+                className={`ccy-btn ccy-more-btn${(!PINNED_CURRENCIES.includes(currency) && currency !== 'ALL') ? ' on' : ''}`}
+                onClick={() => setCcyMenuOpen(!ccyMenuOpen)}
+                title="More currencies"
+              >
+                {(!PINNED_CURRENCIES.includes(currency) && currency !== 'ALL') ? currency : 'More'} <span className="ccy-caret">▾</span>
+              </button>
+              {ccyMenuOpen && (
+                <div className="ccy-dropdown">
+                  {ALL_CURRENCIES.filter(c => !PINNED_CURRENCIES.includes(c)).map(c => (
+                    <div
+                      key={c}
+                      className={`ccy-option${currency===c?' on':''}`}
+                      onClick={() => { setCurrency(c); setCcyMenuOpen(false); }}
+                    >
+                      {c}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
-        </div>
+        ) : (
+          <div className="ccy-locked" title="Currency is fixed to the bond's denomination">
+            <span className="ccy-locked-code">{currency}</span>
+            <span className="ccy-locked-label">denomination</span>
+          </div>
+        )}
         {view === 'calc' ? (
           <button onClick={switchToPnL} style={{display:'flex',alignItems:'center',gap:7,padding:'8px 16px',background:'transparent',color:'var(--blue)',border:'1.5px solid var(--blue)',borderRadius:8,fontSize:12.5,fontWeight:700,cursor:'pointer',whiteSpace:'nowrap'}}>
             <span style={{fontSize:14}}>⇄</span> P&amp;L Simulator
