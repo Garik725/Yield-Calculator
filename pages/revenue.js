@@ -127,21 +127,7 @@ export default function Revenue() {
       </Head>
 
       <style jsx global>{`
-        :root {
-          --paper: #F8F4EA; --paper-2: #FBF8F0; --paper-3: #EFE9DA;
-          --ink: #1A1815; --ink-2: #3D3A33; --ink-3: #6B6760; --ink-4: #8E8A82;
-          --rule: #DDD5BF; --rule-soft: #E8E2D0;
-          --accent: #214B3D; --accent-2: #2E6B5A; --accent-soft: #E5ECE7;
-          --gold: #9D7E3E; --gold-soft: #F0E8D4;
-          --bull: #1F5E40; --bear: #A33D2E;
-          --display: 'Fraunces', Georgia, serif;
-          --sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-          --mono: 'JetBrains Mono', ui-monospace, monospace;
-          --col: 1240px; --pad: clamp(20px, 4vw, 40px);
-        }
-        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-        html { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
-        body { background: var(--paper); color: var(--ink); font-family: var(--sans); font-size: 16px; line-height: 1.6; min-height: 100vh; }
+                /* Design tokens are defined globally in styles/globals.css */
         a { color: inherit; text-decoration: none; }
         button { font-family: inherit; border: none; background: none; cursor: pointer; color: inherit; }
         input, select { font-family: var(--sans); }
@@ -330,7 +316,7 @@ export default function Revenue() {
 
       <style jsx>{`
         /* HEADER */
-        .hd { position: sticky; top: 0; z-index: 100; background: rgba(248,244,234,.92); backdrop-filter: blur(12px); border-bottom: 1px solid var(--rule); }
+        .hd { position: sticky; top: 0; z-index: 100; background: rgba(246,248,250,.92); backdrop-filter: blur(12px); border-bottom: 1px solid var(--rule); }
         .hd-inner { max-width: var(--col); margin: 0 auto; padding: 16px var(--pad); display: flex; align-items: center; gap: 32px; }
         .hd-brand { display: flex; align-items: center; gap: 12px; }
         .hd-mark { width: 32px; height: 32px; background: var(--accent); color: var(--paper); display: flex; align-items: center; justify-content: center; font-family: var(--display); font-weight: 700; font-size: 13px; letter-spacing: -.02em; }
@@ -368,15 +354,16 @@ export default function Revenue() {
         .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
         .field { display: flex; flex-direction: column; gap: 6px; }
         .field label { font-family: var(--sans); font-size: 10.5px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--ink-3); }
-        .field input, .field select { padding: 10px 12px; background: var(--paper); border: 1px solid var(--rule); font-family: var(--mono); font-size: 13.5px; color: var(--ink); outline: none; transition: border-color .15s; }
-        .field input:focus, .field select:focus { border-color: var(--accent); }
+        .field input, .field select { padding: 10px 12px; background: var(--bg); border: 1.5px solid var(--border2); border-radius: 7px; font-family: var(--mono); font-size: 13.5px; color: var(--text); outline: none; transition: all .15s; }
+        .field input:focus, .field select:focus { border-color: var(--blue); background: var(--surface); }
 
-        .mode-toggle { display: flex; border: 1px solid var(--rule); margin-bottom: 4px; }
-        .mode-toggle button { flex: 1; padding: 6px 10px; font-family: var(--sans); font-size: 10.5px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); background: var(--paper); transition: all .15s; }
-        .mode-toggle button.on { background: var(--ink); color: var(--paper); }
+        .mode-toggle { display: inline-flex; gap: 0; background: var(--bg); border: 1px solid var(--border); border-radius: 7px; padding: 3px; margin-bottom: 4px; }
+        .mode-toggle button { flex: 1; padding: 5px 12px; font-family: var(--sans); font-size: 10.5px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--text3); background: transparent; border-radius: 5px; transition: all .12s; }
+        .mode-toggle button:hover { color: var(--text2); }
+        .mode-toggle button.on { background: var(--blue); color: #fff; box-shadow: 0 1px 2px rgba(14,79,110,.18); }
 
-        .btn-fill { display: inline-block; padding: 14px 28px; background: var(--accent); color: var(--paper); font-family: var(--sans); font-weight: 500; font-size: 13.5px; letter-spacing: .02em; transition: background .15s; text-align: center; }
-        .btn-fill:hover { background: var(--accent-2); }
+        .btn-fill { display: inline-block; padding: 14px 28px; background: var(--blue); color: #fff; font-family: var(--sans); font-weight: 600; font-size: 13.5px; letter-spacing: .02em; border-radius: 9px; transition: background .15s; text-align: center; }
+        .btn-fill:hover { background: var(--blue-deep); }
         .btn-fill.big { width: 100%; padding: 16px; font-size: 14px; }
 
         .error { background: #FCEDE9; color: var(--bear); border: 1px solid var(--bear); padding: 12px 16px; font-family: var(--sans); font-size: 14px; margin-top: 8px; }
