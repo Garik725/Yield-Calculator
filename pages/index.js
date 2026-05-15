@@ -99,10 +99,10 @@ export default function Home() {
       <section id="modules" className="modules">
         <div className="sec-inner">
           <div className="sec-head">
-            <div className="eyebrow">The Four Modules</div>
-            <h2 className="sec-h">One <em>engine.</em> Four workflows.</h2>
+            <div className="eyebrow">The Five Modules</div>
+            <h2 className="sec-h">One <em>engine.</em> Five workflows.</h2>
             <p className="sec-lede">
-              Every module runs on the same pure-JavaScript bond-math library. Price a bond in the Calculator, trade it in P&amp;L, manage it in Portfolio, benchmark it against the Treasury curve · without the number ever drifting between screens.
+              Every module runs on the same pure-JavaScript bond-math library. Price a bond in the Calculator, trade it in P&amp;L, manage it in Portfolio, benchmark it against the Treasury curve, and convert across currencies on the FX desk · without the number ever drifting between screens.
             </p>
           </div>
 
@@ -144,6 +144,16 @@ export default function Home() {
               <p className="mod-body">The US Treasury constant-maturity curve · today, a week ago, a year ago · overlaid and annotated. Plus live charts for the major bond ETFs: TLT, IEF, SHY, LQD, HYG, AGG.</p>
               <div className="mod-tags">
                 <span>1M → 30Y</span><span>Historical overlay</span><span>ETF pricing</span><span>Inversion flags</span>
+              </div>
+            </Link>
+
+            <Link href="/fx" className="mod">
+              <div className="mod-route">/fx</div>
+              <div className="mod-num">№ 05</div>
+              <h3 className="mod-h">The <em>FX Desk</em></h3>
+              <p className="mod-body">Live G10 spot rates, a quick currency converter, and the full cross-rate matrix in one view. Read row → column · convert any amount in either direction · refresh on demand.</p>
+              <div className="mod-tags">
+                <span>G10 pairs</span><span>Live spot</span><span>Cross-rate matrix</span><span>Bid/ask</span>
               </div>
             </Link>
           </div>
@@ -279,7 +289,6 @@ export default function Home() {
         <div className="quote-inner">
           <div className="quote-mark">"</div>
           <p className="quote-text">For settlement math, round-trip attribution and curve context, I want <em>a scalpel</em> that opens in a browser tab · nothing to install, nothing to learn, answers in seconds.</p>
-          <div className="quote-attrib">· A Fixed-Income Trader</div>
         </div>
       </section>
 
@@ -345,7 +354,7 @@ export default function Home() {
             <div className="plan-r">
               <div className="plan-feats-h">Everything included</div>
               <ul className="plan-feats">
-                <li>All four modules · Calculator, P&amp;L, Portfolio, Curve</li>
+                <li>All five modules · Calculator, P&amp;L, Portfolio, Curve, FX</li>
                 <li><b>Five simultaneous logins</b> on a single account</li>
                 <li>Unlimited ISIN lookups and PDF settlement tickets</li>
                 <li>Portfolio with live marks, import/export</li>
@@ -400,7 +409,7 @@ export default function Home() {
 
       <style jsx>{`
         /* ── HEADER ── */
-        .hd { position: sticky; top: 0; z-index: 100; background: rgba(248, 244, 234, 0.92); backdrop-filter: blur(12px); border-bottom: 1px solid var(--rule); }
+        .hd { position: sticky; top: 0; z-index: 100; background: rgba(246, 248, 250, 0.92); backdrop-filter: blur(12px); border-bottom: 1px solid var(--rule); }
         .hd-inner { max-width: var(--col); margin: 0 auto; padding: 16px var(--pad); display: flex; align-items: center; gap: 32px; }
         .hd-brand { display: flex; align-items: center; gap: 12px; }
         .hd-mark { width: 32px; height: 32px; background: var(--accent); color: var(--paper); display: flex; align-items: center; justify-content: center; font-family: var(--display); font-weight: 700; font-size: 13px; letter-spacing: -.02em; }
@@ -462,10 +471,11 @@ export default function Home() {
         .sec-lede.center-p { max-width: 600px; margin: 20px auto 0; text-align: center; }
 
         /* ── MODULES ── */
-        .modules { padding: clamp(64px, 8vw, 112px) 0; border-top: 1px solid var(--rule); }
-        .mods { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1px; background: var(--rule); border: 1px solid var(--rule); }
-        .mod { background: var(--paper-2); padding: 40px 36px 44px; position: relative; transition: background .25s, color .25s; min-height: 360px; display: flex; flex-direction: column; }
-        .mod:hover { background: var(--accent-soft); }
+        .modules { padding: clamp(64px, 8vw, 112px) 0; border-top: 1px solid var(--border); }
+        .mods { display: grid; grid-template-columns: repeat(2, 1fr); gap: 2px; background: var(--border); border: 1px solid var(--border); border-radius: 4px; overflow: hidden; }
+        .mod { background: var(--surface); padding: 40px 36px 44px; position: relative; transition: background .25s, color .25s; min-height: 360px; display: flex; flex-direction: column; }
+        .mod:hover { background: var(--blue-dim); }
+        .mod:last-child:nth-child(odd) { grid-column: span 2; }
         .mod-num { font-family: var(--mono); font-size: 11px; letter-spacing: .22em; color: var(--ink-4); margin-bottom: 14px; }
         .mod-h { font-family: var(--display); font-weight: 500; font-size: 32px; line-height: 1.05; letter-spacing: -.02em; color: var(--ink); margin-bottom: 18px; font-variation-settings: "opsz" 36; }
         .mod-h :global(em) { font-style: italic; font-weight: 400; color: var(--accent); font-variation-settings: "opsz" 36; }
