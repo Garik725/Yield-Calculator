@@ -1001,7 +1001,7 @@ export default function Calc() {
           <div className="empty">
             <div className="empty-hero">
               <div className="empty-h">Calculate yield for any bond</div>
-              <div className="empty-s">Pick a sample below, search 10,000+ bonds in the box above, or enter custom details manually.</div>
+              <div className="empty-s">Pick a sample below, search 16,000+ bonds in the box above, or enter custom details manually.</div>
             </div>
 
             <div className="bond-cards">
