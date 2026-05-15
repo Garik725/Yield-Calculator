@@ -581,7 +581,20 @@ export default function Calc() {
       </Head>
 
       <style>{`
-        :root{--bg:#F8F4EA;--surface:#FBF8F0;--card:#FBF8F0;--border:#DDD5BF;--border2:#E8E2D0;--text:#1A1815;--text2:#3D3A33;--text3:#8E8A82;--blue:#214B3D;--blue-dim:#E5ECE7;--green:#1F5E40;--green-dim:#E5ECE7;--red:#A33D2E;--red-dim:#FCEDE9;--gold:#9D7E3E;--gold-dim:#F0E8D4;--mono:'JetBrains Mono',monospace;--sans:'Inter',-apple-system,sans-serif;--display:'Fraunces',Georgia,serif;}
+        :root{
+          --bg:#F8F4EA;--surface:#FBF8F0;--card:#FBF8F0;
+          --border:#DDD5BF;--border2:#E8E2D0;
+          --text:#1A1815;--text2:#3D3A33;--text3:#8E8A82;
+          /* ── Teal-blue: structural primary (buttons, focus, active states) ── */
+          --blue:#0E4F6E;--blue-dim:#E3EEF4;--blue-deep:#0A3B53;
+          /* ── Forest green: structural secondary (badges, tags, headers) ── */
+          --green-deep:#1F5E40;--green-deep-dim:#E5ECE7;
+          /* ── Brighter green: reserved for P&L gains only ── */
+          --green:#2F7D5A;--green-dim:#DEF1E8;
+          --red:#A33D2E;--red-dim:#FCEDE9;
+          --gold:#9D7E3E;--gold-dim:#F0E8D4;
+          --mono:'JetBrains Mono',monospace;--sans:'Inter',-apple-system,sans-serif;--display:'Fraunces',Georgia,serif;
+        }
         *{box-sizing:border-box;margin:0;padding:0;}
         body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:100vh;}
         input,select,button{font-family:var(--sans);}
@@ -616,20 +629,27 @@ export default function Calc() {
         .search-input:focus{border-color:var(--blue);}
         .search-input::placeholder{font-family:var(--sans);color:var(--text3);}
         .search-ico{position:absolute;right:10px;top:50%;transform:translateY(-50%);color:var(--text3);font-size:14px;}
-        .dropdown{position:absolute;top:calc(100% + 5px);left:0;right:0;background:var(--surface);border:1px solid var(--border2);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.11);z-index:200;overflow:hidden;max-height:280px;overflow-y:auto;}
-        .ditem{padding:10px 14px;cursor:pointer;border-bottom:1px solid var(--border);}
-        .ditem:last-child{border-bottom:none;}
-        .ditem:hover{background:var(--bg);}
-        .ditem-isin{font-size:10px;font-family:var(--mono);color:var(--blue);letter-spacing:.6px;}
-        .ditem-figi{background:linear-gradient(to right, var(--blue-dim) 0%, transparent 60%);}
-        .ditem-figi:hover{background:var(--blue-dim);}
-        .ditem-figi .ditem-meta em{font-style:italic;color:var(--blue);font-weight:600;}
-        .ditem-name{font-size:13px;font-weight:500;margin:1px 0;}
-        .ditem-meta{font-size:11px;color:var(--text3);}
-        .ditem-manual{padding:10px 14px;cursor:pointer;background:#F9F8F6;border-top:1px solid var(--border);display:flex;align-items:center;gap:8px;}
-        .ditem-manual:hover{background:var(--blue-dim);}
-        .ditem-manual-text{font-size:12.5px;font-weight:600;color:var(--blue);}
-        .ditem-manual-sub{font-size:11px;color:var(--text3);}
+        .dropdown{position:absolute;top:calc(100% + 5px);left:0;right:0;background:var(--surface);border:1px solid var(--border2);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.11);z-index:200;overflow:hidden;max-height:320px;overflow-y:auto;}
+        .ditem{padding:12px 14px;cursor:pointer;border-bottom:1px solid var(--border);display:flex;flex-direction:column;gap:3px;transition:background .1s;}
+        .ditem:last-of-type{border-bottom:none;}
+        .ditem:hover{background:var(--blue-dim);}
+        .ditem-row1{display:flex;align-items:center;justify-content:space-between;gap:8px;}
+        .ditem-isin{font-size:10.5px;font-family:var(--mono);color:var(--blue);letter-spacing:.6px;font-weight:600;}
+        .ditem-source{font-size:9px;font-weight:700;letter-spacing:.5px;padding:2px 7px;border-radius:3px;text-transform:uppercase;}
+        .ditem-source.db{background:var(--green-deep-dim);color:var(--green-deep);}
+        .ditem-source.figi{background:var(--gold-dim);color:var(--gold);}
+        .ditem-figi{background:linear-gradient(to right, var(--gold-dim) 0%, transparent 65%);}
+        .ditem-figi:hover{background:var(--gold-dim);}
+        .ditem-figi .ditem-meta em{font-style:italic;color:var(--gold);font-weight:600;}
+        .ditem-name{font-size:13.5px;font-weight:600;color:var(--text);line-height:1.3;}
+        .ditem-meta{font-size:11.5px;color:var(--text3);}
+        .ditem-manual{padding:13px 14px;cursor:pointer;background:var(--blue-dim);border-top:2px solid var(--blue);display:flex;align-items:center;gap:10px;transition:background .12s;}
+        .ditem-manual:hover{background:var(--blue);}
+        .ditem-manual:hover .ditem-manual-text,.ditem-manual:hover .ditem-manual-sub,.ditem-manual:hover .ditem-manual-icon{color:#fff;}
+        .ditem-manual-icon{width:22px;height:22px;display:flex;align-items:center;justify-content:center;background:var(--blue);color:#fff;border-radius:5px;font-size:13px;font-weight:700;flex-shrink:0;transition:all .12s;}
+        .ditem-manual:hover .ditem-manual-icon{background:#fff;color:var(--blue);}
+        .ditem-manual-text{font-size:13px;font-weight:700;color:var(--blue);transition:color .12s;}
+        .ditem-manual-sub{font-size:11px;color:var(--text2);margin-top:1px;transition:color .12s;}
         .clock{margin-left:auto;font-size:11px;font-family:var(--mono);color:var(--text3);}
         .main{max-width:820px;margin:0 auto;padding:24px 18px 60px;}
         .card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:14px;}
@@ -638,7 +658,7 @@ export default function Calc() {
         .bs-name{font-size:18px;font-weight:700;margin-bottom:7px;}
         .bs-pills{display:flex;gap:6px;flex-wrap:wrap;}
         .pill{font-size:10px;padding:2px 9px;border-radius:20px;font-weight:600;}
-        .pill-aaa{background:#D1FAE5;color:#065F46;}.pill-aa{background:#D1FAE5;color:#065F46;}.pill-a{background:#FEF3C7;color:#78350F;}.pill-bb{background:#FEE2E2;color:#991B1B;}.pill-govt{background:var(--blue-dim);color:var(--blue);}.pill-corp{background:#EDE9FE;color:#5B21B6;}.pill-hy{background:#FEE2E2;color:#991B1B;}
+        .pill-aaa{background:var(--green-deep-dim);color:var(--green-deep);}.pill-aa{background:var(--green-deep-dim);color:var(--green-deep);}.pill-a{background:#FEF3C7;color:#78350F;}.pill-bb{background:#FEE2E2;color:#991B1B;}.pill-govt{background:var(--blue-dim);color:var(--blue);}.pill-corp{background:#EDE9FE;color:#5B21B6;}.pill-hy{background:#FEE2E2;color:#991B1B;}
         .bs-right{display:flex;gap:16px;flex-wrap:wrap;}
         .bsf{text-align:right;}
         .bsf-label{font-size:9.5px;color:var(--text3);letter-spacing:.4px;text-transform:uppercase;}
@@ -658,6 +678,10 @@ export default function Calc() {
         .bs-btn.buy.on{border-color:var(--green);color:var(--green);background:var(--green-dim);}
         .bs-btn.sell.on{border-color:var(--red);color:var(--red);background:var(--red-dim);}
         .hdivider{border:none;border-top:1px solid var(--border);margin:16px 0;}
+
+        /* ── Subsection label inside cards ── */
+        .sub-label{font-size:10px;font-weight:700;letter-spacing:1.4px;text-transform:uppercase;color:var(--blue);margin-bottom:12px;display:flex;align-items:center;gap:8px;}
+        .sub-label::before{content:"";display:inline-block;width:14px;height:1.5px;background:var(--blue);}
         .info-bar{background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;display:flex;margin-bottom:14px;}
         .ib-cell{flex:1;padding:12px 14px;border-right:1px solid var(--border);display:flex;flex-direction:column;gap:3px;}
         .ib-cell:last-child{border-right:none;}
@@ -684,8 +708,14 @@ export default function Calc() {
         .sbl-total-label{font-size:13px;font-weight:700;color:var(--text2);}
         .sbl-total-amt{font-size:24px;font-family:var(--mono);font-weight:800;}
         .btn-export{display:flex;align-items:center;gap:7px;padding:11px 22px;background:var(--blue);color:#fff;border:none;border-radius:9px;font-size:13px;font-weight:700;cursor:pointer;transition:background .14s;}
-        .btn-export:hover{background:#1040AA;}
+        .btn-export:hover{background:var(--blue-deep);}
         .pdf-status{font-size:11.5px;color:var(--green);}
+
+        /* ── Quote mode toggle (PRICE / YIELD) ── */
+        .qmode{display:inline-flex;gap:0;background:#F2F0EC;border-radius:7px;padding:3px;border:1px solid var(--border);}
+        .qmode-btn{padding:5px 12px;border:none;background:transparent;color:var(--text3);font-size:10.5px;font-weight:700;letter-spacing:.5px;border-radius:5px;cursor:pointer;transition:all .12s;}
+        .qmode-btn:hover{color:var(--text2);}
+        .qmode-btn.on{background:var(--blue);color:#fff;box-shadow:0 1px 2px rgba(14,79,110,.18);}
         .empty{padding:60px 20px;max-width:1100px;margin:0 auto;}
         .empty-hero{text-align:center;margin-bottom:36px;}
         .empty-h{font-family:var(--display, 'Fraunces', serif);font-weight:500;font-size:34px;letter-spacing:-.018em;color:var(--text);margin-bottom:10px;line-height:1.15;}
@@ -693,12 +723,12 @@ export default function Calc() {
 
         .bond-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px;}
         .bond-card{padding:18px;border:1px solid var(--border2);background:var(--surface);cursor:pointer;display:flex;flex-direction:column;gap:8px;transition:all .15s;position:relative;}
-        .bond-card:hover{border-color:var(--blue);box-shadow:0 2px 8px rgba(23,85,204,.08);transform:translateY(-1px);}
+        .bond-card:hover{border-color:var(--blue);box-shadow:0 2px 8px rgba(14,79,110,.12);transform:translateY(-1px);}
         .bond-card.manual-card{background:linear-gradient(135deg,var(--blue-dim) 0%,transparent 60%);border-color:var(--blue);border-style:dashed;}
         .bond-card.manual-card:hover{background:var(--blue-dim);border-style:solid;}
         .bc-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:2px;}
         .bc-tag{font-family:var(--mono);font-size:9px;font-weight:600;letter-spacing:.08em;padding:3px 8px;text-transform:uppercase;border-radius:2px;}
-        .bc-tag.gov{background:#E8F1E5;color:#2E6B3E;}
+        .bc-tag.gov{background:var(--green-deep-dim);color:var(--green-deep);}
         .bc-tag.corp{background:#FCF1E0;color:#9D7E3E;}
         .bc-tag.manual{background:#fff;color:var(--blue);border:1px solid var(--blue);}
         .bc-rating{font-family:var(--mono);font-size:10.5px;font-weight:600;color:var(--text3);}
@@ -727,7 +757,7 @@ export default function Calc() {
         .mfi.err{border-color:var(--red);background:var(--red-dim);}
         .err-text{font-size:10px;color:var(--red);margin-top:2px;}
         .btn-load{background:var(--blue);color:#fff;border:none;border-radius:8px;padding:10px 22px;font-size:13px;font-weight:700;cursor:pointer;transition:background .13s;}
-        .btn-load:hover{background:#1040AA;}
+        .btn-load:hover{background:var(--blue-deep);}
         .btn-cancel{background:transparent;color:var(--text2);border:1.5px solid var(--border2);border-radius:8px;padding:10px 16px;font-size:13px;font-weight:600;cursor:pointer;margin-left:8px;}
         .btn-cancel:hover{border-color:var(--text2);}
         .ccy-bar{display:flex;gap:6px;margin-left:auto;align-items:center;flex-wrap:wrap;max-width:560px;}
@@ -744,6 +774,12 @@ export default function Calc() {
         @media (max-width: 700px){
           .ccy-bar{max-width:100%;flex-basis:100%;order:5;justify-content:flex-start;padding:6px 0;border-top:1px solid var(--border);margin-top:4px;}
           .ccy-dropdown{grid-template-columns:repeat(3,1fr);right:auto;left:0;}
+          .clock{display:none;}
+          .topbar{flex-wrap:wrap;height:auto;min-height:52px;padding:8px 14px;gap:10px;}
+          .search-wrap{flex-basis:100%;order:3;max-width:100%;}
+          .logo-name{display:none;}
+          .pn-modules{overflow-x:auto;}
+          .pn-mod{padding:0 12px;font-size:12px;}
         }
         @media(max-width:600px){.row{flex-direction:column;}.or-sep{padding:0;}.mp-grid{grid-template-columns:1fr 1fr;}.mp-grid-2{grid-template-columns:1fr;}.info-bar{flex-wrap:wrap;}.ib-cell{min-width:50%;}}
       `}</style>
@@ -822,23 +858,31 @@ export default function Calc() {
                         issuer: b.issuer || '',
                       }));
                     }}>
-                      <div className="ditem-isin">{b.isin} <span style={{color:'var(--green)',fontSize:'9px'}}>✓ VALID ISIN</span></div>
+                      <div className="ditem-row1">
+                        <span className="ditem-isin">{b.isin}</span>
+                        <span className="ditem-source figi">Needs details</span>
+                      </div>
                       <div className="ditem-name">{b.name}</div>
-                      <div className="ditem-meta">{b.type} · OpenFIGI · <em>click to enter coupon &amp; maturity</em></div>
+                      <div className="ditem-meta">{b.type} · <em>click to enter coupon &amp; maturity</em></div>
                     </div>
                   );
                 }
                 return (
                   <div key={b.isin} className="ditem" onClick={() => loadBond(b)}>
-                    <div className="ditem-isin">{b.isin} {b.source === 'database' && <span style={{color:'var(--green)',fontSize:'9px'}}>● DATABASE</span>}{b.source === 'api' && <span style={{color:'var(--green)',fontSize:'9px'}}>● LIVE</span>}</div>
+                    <div className="ditem-row1">
+                      <span className="ditem-isin">{b.isin}</span>
+                      {b.source === 'database' && <span className="ditem-source db">Database</span>}
+                      {b.source === 'api' && <span className="ditem-source db">Live</span>}
+                    </div>
                     <div className="ditem-name">{b.name}</div>
                     <div className="ditem-meta">{b.coupon?.toFixed(3)}% · {b.maturity} · {b.rating} · {b.type}</div>
                   </div>
                 );
               })}
               <div className="ditem-manual" onClick={() => { setShowDrop(false); setManualMode(true); const isin = isinInput.trim().toUpperCase().split(' ')[0]; setManualForm(f => ({...f, isin})); }}>
+                <div className="ditem-manual-icon">+</div>
                 <div>
-                  <div className="ditem-manual-text">✚ Enter bond details manually</div>
+                  <div className="ditem-manual-text">Enter bond details manually</div>
                   <div className="ditem-manual-sub">Input coupon, maturity and day count for any bond</div>
                 </div>
               </div>
@@ -1020,6 +1064,7 @@ export default function Calc() {
                 <button className={`bs-btn buy${side==='BUY'?' on':''}`} onClick={() => setSide('BUY')}>BUY</button>
                 <button className={`bs-btn sell${side==='SELL'?' on':''}`} onClick={() => setSide('SELL')}>SELL</button>
               </div>
+              <div className="sub-label">Trade Setup</div>
               <div className="row">
                 <div className="field">
                   <div className="fl">Settlement Date</div>
@@ -1042,6 +1087,7 @@ export default function Calc() {
                 </div>
               </div>
               <div className="hdivider"/>
+              <div className="sub-label">Quote · enter either side</div>
               <div className="row" style={{alignItems:'flex-start'}}>
                 <div className="field">
                   <div className="fl">Clean Price (per 100 face)</div>
@@ -1202,9 +1248,9 @@ export default function Calc() {
                     <div>
                       <div className="fl" style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
                         <span>Purchase</span>
-                        <div style={{display:'flex',gap:2,background:'#F2F0EC',borderRadius:5,padding:2}}>
-                          <button onClick={() => setPnlBuyMode('price')} style={{padding:'3px 9px',border:'none',background:pnlBuyMode==='price'?'var(--surface)':'transparent',color:pnlBuyMode==='price'?'var(--blue)':'var(--text3)',fontSize:10,fontWeight:pnlBuyMode==='price'?700:600,borderRadius:3,cursor:'pointer',boxShadow:pnlBuyMode==='price'?'0 1px 2px rgba(0,0,0,.08)':'none'}}>PRICE</button>
-                          <button onClick={() => setPnlBuyMode('ytm')} style={{padding:'3px 9px',border:'none',background:pnlBuyMode==='ytm'?'var(--surface)':'transparent',color:pnlBuyMode==='ytm'?'var(--blue)':'var(--text3)',fontSize:10,fontWeight:pnlBuyMode==='ytm'?700:600,borderRadius:3,cursor:'pointer',boxShadow:pnlBuyMode==='ytm'?'0 1px 2px rgba(0,0,0,.08)':'none'}}>YIELD</button>
+                        <div className="qmode">
+                          <button onClick={() => setPnlBuyMode('price')} className={`qmode-btn${pnlBuyMode==='price'?' on':''}`}>PRICE</button>
+                          <button onClick={() => setPnlBuyMode('ytm')} className={`qmode-btn${pnlBuyMode==='ytm'?' on':''}`}>YIELD</button>
                         </div>
                       </div>
                       <input type="number" className="fi" value={pnlBuyValue} onChange={e => setPnlBuyValue(e.target.value)} step="0.001" placeholder={pnlBuyMode==='price'?'e.g. 98.50':'e.g. 5.00'}/>
@@ -1229,9 +1275,9 @@ export default function Calc() {
                     <div>
                       <div className="fl" style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
                         <span>Sale</span>
-                        <div style={{display:'flex',gap:2,background:'#F2F0EC',borderRadius:5,padding:2}}>
-                          <button onClick={() => setPnlSellMode('price')} style={{padding:'3px 9px',border:'none',background:pnlSellMode==='price'?'var(--surface)':'transparent',color:pnlSellMode==='price'?'var(--blue)':'var(--text3)',fontSize:10,fontWeight:pnlSellMode==='price'?700:600,borderRadius:3,cursor:'pointer',boxShadow:pnlSellMode==='price'?'0 1px 2px rgba(0,0,0,.08)':'none'}}>PRICE</button>
-                          <button onClick={() => setPnlSellMode('ytm')} style={{padding:'3px 9px',border:'none',background:pnlSellMode==='ytm'?'var(--surface)':'transparent',color:pnlSellMode==='ytm'?'var(--blue)':'var(--text3)',fontSize:10,fontWeight:pnlSellMode==='ytm'?700:600,borderRadius:3,cursor:'pointer',boxShadow:pnlSellMode==='ytm'?'0 1px 2px rgba(0,0,0,.08)':'none'}}>YIELD</button>
+                        <div className="qmode">
+                          <button onClick={() => setPnlSellMode('price')} className={`qmode-btn${pnlSellMode==='price'?' on':''}`}>PRICE</button>
+                          <button onClick={() => setPnlSellMode('ytm')} className={`qmode-btn${pnlSellMode==='ytm'?' on':''}`}>YIELD</button>
                         </div>
                       </div>
                       <input type="number" className="fi" value={pnlSellValue} onChange={e => setPnlSellValue(e.target.value)} step="0.001" placeholder={pnlSellMode==='price'?'e.g. 101.25':'e.g. 4.00'}/>
