@@ -22,32 +22,8 @@ export default function Home() {
       </Head>
 
       <style jsx global>{`
-        :root {
-          --paper: #F8F4EA;
-          --paper-2: #FBF8F0;
-          --paper-3: #EFE9DA;
-          --ink: #1A1815;
-          --ink-2: #3D3A33;
-          --ink-3: #6B6760;
-          --ink-4: #8E8A82;
-          --rule: #DDD5BF;
-          --rule-soft: #E8E2D0;
-          --accent: #214B3D;
-          --accent-2: #2E6B5A;
-          --accent-soft: #E5ECE7;
-          --gold: #9D7E3E;
-          --gold-soft: #F0E8D4;
-          --bull: #1F5E40;
-          --bear: #A33D2E;
-          --display: 'Fraunces', Georgia, serif;
-          --sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-          --mono: 'JetBrains Mono', ui-monospace, monospace;
-          --col: 1240px;
-          --pad: clamp(20px, 4vw, 40px);
-        }
-        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-        html { scroll-behavior: smooth; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
-        body { background: var(--paper); color: var(--ink); font-family: var(--sans); font-size: 16px; line-height: 1.6; overflow-x: hidden; }
+                /* Design tokens are defined globally in styles/globals.css */
+        body { overflow-x: hidden; }
         a { color: inherit; text-decoration: none; }
         button { font-family: inherit; border: none; background: none; cursor: pointer; color: inherit; }
         img, svg { max-width: 100%; display: block; }
@@ -207,7 +183,7 @@ export default function Home() {
                   <stop offset="100%" stopColor="#214B3D" stopOpacity="0" />
                 </linearGradient>
               </defs>
-              <g stroke="#DDD5BF" strokeWidth="0.5" fontFamily="Inter" fontSize="10" fill="#8E8A82">
+              <g stroke="#E2E6EB" strokeWidth="0.5" fontFamily="Inter" fontSize="10" fill="#8E8A82">
                 <line x1="80" y1="30" x2="1060" y2="30"/><text x="70" y="34" textAnchor="end">5.40</text>
                 <line x1="80" y1="107.5" x2="1060" y2="107.5" strokeDasharray="2 3"/><text x="70" y="111" textAnchor="end">5.00</text>
                 <line x1="80" y1="185" x2="1060" y2="185" strokeDasharray="2 3"/><text x="70" y="189" textAnchor="end">4.60</text>
@@ -231,7 +207,7 @@ export default function Home() {
                 <circle cx="619" cy="251.25" r="4"/><circle cx="706" cy="237.69" r="4"/><circle cx="801" cy="231.88" r="4"/>
                 <circle cx="945" cy="187.13" r="4"/><circle cx="1060" cy="179.38" r="4"/>
               </g>
-              <g fill="#F8F4EA" stroke="#214B3D" strokeWidth="1.6">
+              <g fill="#FFFFFF" stroke="#0E4F6E" strokeWidth="1.6">
                 <circle cx="619" cy="251.25" r="6"/><circle cx="801" cy="231.88" r="6"/>
               </g>
               <g fontFamily="JetBrains Mono" fontSize="11" fontWeight="600" fill="#1A1815">
@@ -447,8 +423,8 @@ export default function Home() {
         .hero-h :global(em) { font-style: italic; font-weight: 400; color: var(--accent); font-variation-settings: "opsz" 96; }
         .hero-lede { font-family: var(--sans); font-size: 18px; line-height: 1.6; color: var(--ink-2); max-width: 560px; margin-bottom: 36px; }
         .hero-cta { display: flex; gap: 24px; align-items: center; flex-wrap: wrap; margin-bottom: 48px; }
-        .btn-fill { padding: 13px 28px; background: var(--accent); color: var(--paper); font-family: var(--sans); font-weight: 500; font-size: 14px; letter-spacing: .01em; transition: background .15s; }
-        .btn-fill:hover { background: var(--accent-2); }
+        .btn-fill { padding: 13px 28px; background: var(--blue); color: #fff; font-family: var(--sans); font-weight: 600; font-size: 14px; letter-spacing: .01em; border-radius: 9px; transition: background .15s; }
+        .btn-fill:hover { background: var(--blue-deep); }
         .btn-link { font-family: var(--sans); font-weight: 500; font-size: 14px; color: var(--ink); border-bottom: 1px solid var(--ink); padding-bottom: 2px; transition: all .15s; }
         .btn-link:hover { color: var(--accent); border-color: var(--accent); }
         .hero-foot { display: flex; gap: 28px; align-items: center; padding-top: 28px; border-top: 1px solid var(--rule); }
@@ -457,7 +433,7 @@ export default function Home() {
         .hero-foot span { font-family: var(--sans); font-size: 11px; font-weight: 500; color: var(--ink-3); letter-spacing: .04em; text-transform: uppercase; }
         .hero-foot .div { width: 1px; height: 36px; background: var(--rule); }
 
-        .specimen { background: var(--paper-2); border: 1px solid var(--rule); padding: 32px 30px; box-shadow: 0 1px 0 var(--rule-soft), 0 24px 48px -24px rgba(26, 24, 21, 0.12); }
+        .specimen { background: var(--surface); border: 1px solid var(--border); border-radius: 4px; padding: 32px 30px; box-shadow: 0 1px 0 var(--border2), 0 24px 48px -24px rgba(14, 79, 110, 0.12); }
         .spec-label { font-family: var(--sans); font-size: 10px; font-weight: 600; letter-spacing: .22em; text-transform: uppercase; color: var(--ink-4); margin-bottom: 16px; }
         .spec-isin { font-family: var(--mono); font-weight: 600; font-size: 13px; color: var(--ink); letter-spacing: .04em; }
         .spec-desc { font-family: var(--display); font-style: italic; font-weight: 400; font-size: 16px; color: var(--ink-2); margin-top: 4px; }
@@ -591,8 +567,8 @@ export default function Home() {
         .plan-feats li { padding: 10px 0; border-bottom: 1px solid rgba(248, 244, 234, 0.1); font-family: var(--sans); font-size: 14px; line-height: 1.5; display: grid; grid-template-columns: 16px 1fr; gap: 12px; align-items: start; }
         .plan-feats li::before { content: "+"; color: var(--accent-2); font-family: var(--mono); font-weight: 700; font-size: 14px; line-height: 1.4; }
         .plan-feats :global(b) { font-weight: 600; }
-        .plan-cta { display: block; width: 100%; padding: 15px; background: var(--accent); color: var(--paper); font-family: var(--sans); font-weight: 500; font-size: 13.5px; letter-spacing: .02em; transition: background .15s; text-align: center; }
-        .plan-cta:hover { background: var(--accent-2); }
+        .plan-cta { display: block; width: 100%; padding: 15px; background: var(--blue); color: #fff; font-family: var(--sans); font-weight: 600; font-size: 13.5px; letter-spacing: .02em; border-radius: 9px; transition: background .15s; text-align: center; }
+        .plan-cta:hover { background: var(--blue-deep); }
         .plan-fine { margin-top: 12px; font-family: var(--mono); font-size: 10.5px; color: rgba(248, 244, 234, 0.45); letter-spacing: .05em; text-align: center; }
 
         /* ── FOOTER ── */
