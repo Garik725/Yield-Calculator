@@ -276,7 +276,6 @@ export default function Calc() {
     if (!bond || !result) return;
     setPdfStatus('Generating PDF...');
     try {
-      // Load jsPDF from CDN if not already loaded
       if (!window.jspdf) {
         await new Promise((resolve, reject) => {
           const script = document.createElement('script');
@@ -291,136 +290,160 @@ export default function Calc() {
       const pageWidth = doc.internal.pageSize.getWidth();
       const pageHeight = doc.internal.pageSize.getHeight();
       const marginX = 50;
+      const contentW = pageWidth - 2 * marginX;
 
-      const sym = CCY_SYMBOLS[currency] || '$';
+      // ─────────────────────────────────────────────────────────────────────────
+      // CURRENCY: jsPDF's standard fonts are Latin-1 only and cannot render
+      // glyphs like ֏ ₹ ₽ ₸ ₪ ₴. A settlement confirmation should use the ISO
+      // code anyway (this is what Bloomberg / SWIFT tickets do). So in the PDF
+      // we always render "AMD 974,336.42", never the symbol.
+      // ─────────────────────────────────────────────────────────────────────────
+      const money = (n) => `${currency} ${fmtMoney(n)}`;
+
+      // Brand palette (matches the new teal-blue / forest-green theme)
+      const TEAL   = [14, 79, 110];
+      const INK    = [26, 24, 21];
+      const MUTE   = [107, 103, 96];
+      const FAINT  = [142, 138, 130];
+      const RULE   = [226, 230, 235];
+      const GREEN  = [31, 94, 64];
+      const RED    = [163, 61, 46];
+
       const settle = parseDate(settleDate);
       const now = new Date();
       const ref = `YC-${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}-${Math.floor(Math.random()*9000+1000)}`;
       const dateStr = now.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
       const isBuy = side === 'BUY';
 
-      // ─── COVER ───────────────────────────────────────
-      doc.setDrawColor(33, 75, 61); doc.setLineWidth(2); doc.line(marginX, 80, marginX + 60, 80);
-      doc.setTextColor(33, 75, 61); doc.setFont('helvetica', 'bold'); doc.setFontSize(9);
+      // Page-aware vertical cursor. Every writer goes through `cursor` and
+      // calls ensureSpace() before drawing, so content can never collide
+      // with the footer or run off the page.
+      let cursor = 0;
+      const FOOTER_Y = pageHeight - 45;
+      const drawPageChrome = (isCover) => {
+        if (!isCover) {
+          doc.setFont('helvetica', 'normal'); doc.setFontSize(8); doc.setTextColor(...FAINT);
+          doc.text('YIELD CALCULATOR · SETTLEMENT CONFIRMATION', marginX, 38);
+          doc.text(dateStr, pageWidth - marginX, 38, { align: 'right' });
+          doc.setDrawColor(...RULE); doc.setLineWidth(0.5);
+          doc.line(marginX, 48, pageWidth - marginX, 48);
+        }
+        doc.setFont('times', 'italic'); doc.setFontSize(8); doc.setTextColor(...FAINT);
+        doc.text('Yield Calculator · yieldcalculator.tech · hello@yieldcalculator.tech',
+                 pageWidth / 2, FOOTER_Y, { align: 'center' });
+      };
+      const newContentPage = () => {
+        doc.addPage();
+        drawPageChrome(false);
+        cursor = 80;
+      };
+      const ensureSpace = (needed) => {
+        if (cursor + needed > FOOTER_Y - 20) newContentPage();
+      };
+
+      const sectionTitle = (txt) => {
+        ensureSpace(50);
+        doc.setFont('times', 'normal'); doc.setFontSize(22); doc.setTextColor(...INK);
+        doc.text(txt, marginX, cursor);
+        cursor += 12;
+        doc.setDrawColor(...INK); doc.setLineWidth(1);
+        doc.line(marginX, cursor, pageWidth - marginX, cursor);
+        cursor += 28;
+      };
+      const kvRow = (label, value, opts = {}) => {
+        ensureSpace(28);
+        doc.setFont('helvetica', 'normal'); doc.setFontSize(9); doc.setTextColor(...MUTE);
+        doc.text(label, marginX, cursor);
+        doc.setFont('courier', 'normal'); doc.setFontSize(10);
+        doc.setTextColor(...(opts.color || INK));
+        // Wrap very long values (e.g. bond names) instead of letting them
+        // overflow the page edge.
+        const maxValW = contentW - 170;
+        const lines = doc.splitTextToSize(String(value), maxValW);
+        doc.text(lines, pageWidth - marginX, cursor, { align: 'right' });
+        const rowH = Math.max(22, lines.length * 13 + 9);
+        doc.setDrawColor(...RULE); doc.setLineWidth(0.5);
+        doc.line(marginX, cursor + (rowH - 17), pageWidth - marginX, cursor + (rowH - 17));
+        cursor += rowH;
+      };
+
+      // ─── COVER ───────────────────────────────────────────────────────────────
+      doc.setDrawColor(...TEAL); doc.setLineWidth(2); doc.line(marginX, 80, marginX + 60, 80);
+      doc.setTextColor(...TEAL); doc.setFont('helvetica', 'bold'); doc.setFontSize(9);
       doc.text('YIELD CALCULATOR', marginX, 100);
 
-      doc.setTextColor(26, 24, 21); doc.setFont('times', 'normal'); doc.setFontSize(38);
-      doc.text('Settlement Confirmation', marginX, 160);
-      doc.setFont('times', 'italic'); doc.setFontSize(14); doc.setTextColor(107, 103, 96);
-      doc.text(`Reference ${ref}`, marginX, 185);
+      doc.setTextColor(...INK); doc.setFont('times', 'normal'); doc.setFontSize(36);
+      doc.text('Settlement Confirmation', marginX, 158);
+      doc.setFont('times', 'italic'); doc.setFontSize(13); doc.setTextColor(...MUTE);
+      doc.text(`Reference ${ref}`, marginX, 182);
 
-      // Summary card
-      const cardY = 240;
-      doc.setDrawColor(221, 213, 191); doc.setLineWidth(1);
-      doc.rect(marginX, cardY, pageWidth - 2 * marginX, 280);
+      const cardY = 230;
+      const cardH = 300;
+      doc.setDrawColor(...RULE); doc.setLineWidth(1);
+      doc.rect(marginX, cardY, contentW, cardH);
 
-      const statRow = (label, value, y, color) => {
-        doc.setFont('helvetica', 'bold'); doc.setFontSize(8); doc.setTextColor(107, 103, 96);
-        doc.text(label.toUpperCase(), marginX + 25, y);
-        doc.setFont('times', 'normal'); doc.setFontSize(20); doc.setTextColor(...(color || [26, 24, 21]));
-        doc.text(value, pageWidth - marginX - 25, y, { align: 'right' });
+      const statRow = (label, value, yy, color) => {
+        doc.setFont('helvetica', 'bold'); doc.setFontSize(8); doc.setTextColor(...MUTE);
+        doc.text(label.toUpperCase(), marginX + 25, yy);
+        doc.setFont('times', 'normal'); doc.setFontSize(18); doc.setTextColor(...(color || INK));
+        // Right value, wrapped if needed so it never overruns the card edge.
+        const vLines = doc.splitTextToSize(String(value), contentW - 220);
+        doc.text(vLines, pageWidth - marginX - 25, yy, { align: 'right' });
       };
-      statRow('Trade Side', side, cardY + 50, isBuy ? [31, 94, 64] : [163, 61, 46]);
+      statRow('Trade Side', side, cardY + 50, isBuy ? GREEN : RED);
       statRow('Settlement Date', fmtDate(settle), cardY + 100);
       statRow('ISIN', bond.isin, cardY + 150);
-      statRow('Bond', bond.name.length > 38 ? bond.name.substring(0, 36) + '...' : bond.name, cardY + 200);
-      statRow(isBuy ? 'You Pay' : 'You Receive', sym + fmtMoney(result.totalAmt), cardY + 255, [33, 75, 61]);
+      statRow('Bond', bond.name, cardY + 200);
+      doc.setDrawColor(...RULE); doc.setLineWidth(0.5);
+      doc.line(marginX + 25, cardY + 225, pageWidth - marginX - 25, cardY + 225);
+      statRow(isBuy ? 'You Pay' : 'You Receive', money(result.totalAmt), cardY + 262, TEAL);
 
-      doc.setFont('times', 'italic'); doc.setFontSize(9); doc.setTextColor(142, 138, 130);
-      doc.text('Generated by Yield Calculator · yieldcalculator.tech', pageWidth / 2, pageHeight - 50, { align: 'center' });
-      doc.text('For informational purposes only. Not financial advice.', pageWidth / 2, pageHeight - 35, { align: 'center' });
+      doc.setFont('times', 'italic'); doc.setFontSize(9); doc.setTextColor(...FAINT);
+      doc.text('Generated by Yield Calculator · yieldcalculator.tech', pageWidth / 2, pageHeight - 60, { align: 'center' });
+      doc.text('For informational purposes only. Not financial advice.', pageWidth / 2, pageHeight - 46, { align: 'center' });
 
-      // ─── DETAILS PAGE ───────────────────────────────
-      doc.addPage();
-      doc.setFont('helvetica', 'normal'); doc.setFontSize(8); doc.setTextColor(142, 138, 130);
-      doc.text('YIELD CALCULATOR · SETTLEMENT CONFIRMATION', marginX, 40);
-      doc.text(dateStr, pageWidth - marginX, 40, { align: 'right' });
+      // ─── DETAILS PAGE ────────────────────────────────────────────────────────
+      newContentPage();
+      sectionTitle('Bond Details');
+      kvRow('ISIN', bond.isin);
+      kvRow('Name', bond.name);
+      kvRow('Issuer', bond.issuer || '–');
+      kvRow('Coupon Rate', bond.coupon.toFixed(3) + '%');
+      kvRow('Maturity Date', bond.maturity);
+      kvRow('Day Count Convention', bond.dc);
+      kvRow('Currency', currency);
 
-      doc.setFont('times', 'normal'); doc.setFontSize(24); doc.setTextColor(26, 24, 21);
-      doc.text('Bond Details', marginX, 85);
-      doc.setDrawColor(26, 24, 21); doc.setLineWidth(1); doc.line(marginX, 95, pageWidth - marginX, 95);
+      cursor += 26;
+      sectionTitle('Trade Details');
+      kvRow('Side', side, { color: isBuy ? GREEN : RED });
+      kvRow('Settlement Date', fmtDate(settle));
+      kvRow('Face / Nominal Value', money(face));
+      kvRow('Clean Price', result.cleanPx.toFixed(5) + ' per 100 face');
+      kvRow('Yield to Maturity', (result.ytm * 100).toFixed(5) + '%');
+      kvRow('Dirty Price', result.dirtyPx.toFixed(5) + ' per 100 face');
 
-      // Two-column detail table
-      let y = 120;
-      const detailRow = (label, value) => {
-        doc.setFont('helvetica', 'normal'); doc.setFontSize(9); doc.setTextColor(107, 103, 96);
-        doc.text(label, marginX, y);
-        doc.setFont('courier', 'normal'); doc.setFontSize(10); doc.setTextColor(26, 24, 21);
-        doc.text(String(value), pageWidth - marginX, y, { align: 'right' });
-        doc.setDrawColor(232, 226, 208); doc.setLineWidth(0.5);
-        doc.line(marginX, y + 5, pageWidth - marginX, y + 5);
-        y += 22;
-      };
+      // ─── INVOICE PAGE ────────────────────────────────────────────────────────
+      newContentPage();
+      sectionTitle('Settlement Invoice');
+      kvRow(`Principal (${result.cleanPx.toFixed(3)} per 100 \u00D7 ${fmtFace(face)} face)`, money(result.principalAmt));
+      kvRow(`Accrued Interest (${result.days} day${result.days === 1 ? '' : 's'})`, money(result.aiAmt));
 
-      detailRow('ISIN', bond.isin);
-      detailRow('Name', bond.name);
-      detailRow('Issuer', bond.issuer || '–');
-      detailRow('Coupon Rate', bond.coupon.toFixed(3) + '%');
-      detailRow('Maturity Date', bond.maturity);
-      detailRow('Day Count Convention', bond.dc);
-      detailRow('Currency', currency);
-
-      y += 24;
-      doc.setFont('times', 'normal'); doc.setFontSize(24); doc.setTextColor(26, 24, 21);
-      doc.text('Trade Details', marginX, y);
-      y += 10;
-      doc.setDrawColor(26, 24, 21); doc.setLineWidth(1); doc.line(marginX, y, pageWidth - marginX, y);
-      y += 25;
-
-      detailRow('Side', side);
-      detailRow('Settlement Date', fmtDate(settle));
-      detailRow('Face / Nominal Value', sym + fmtMoney(face));
-      detailRow('Clean Price', result.cleanPx.toFixed(5) + ' per 100 face');
-      detailRow('Yield to Maturity', (result.ytm * 100).toFixed(5) + '%');
-      detailRow('Dirty Price', result.dirtyPx.toFixed(5) + ' per 100 face');
-
-      // ─── INVOICE PAGE ────────────────────────────────
-      doc.addPage();
-      doc.setFont('helvetica', 'normal'); doc.setFontSize(8); doc.setTextColor(142, 138, 130);
-      doc.text('YIELD CALCULATOR · SETTLEMENT CONFIRMATION', marginX, 40);
-      doc.text(`Page 3 · Reference ${ref}`, pageWidth - marginX, 40, { align: 'right' });
-
-      doc.setFont('times', 'normal'); doc.setFontSize(24); doc.setTextColor(26, 24, 21);
-      doc.text('Settlement Invoice', marginX, 85);
-      doc.setDrawColor(26, 24, 21); doc.setLineWidth(1); doc.line(marginX, 95, pageWidth - marginX, 95);
-
-      y = 130;
-      const invoiceRow = (label, value) => {
-        doc.setFont('helvetica', 'normal'); doc.setFontSize(10); doc.setTextColor(107, 103, 96);
-        doc.text(label, marginX, y);
-        doc.setFont('courier', 'normal'); doc.setFontSize(11); doc.setTextColor(26, 24, 21);
-        doc.text(value, pageWidth - marginX, y, { align: 'right' });
-        doc.setDrawColor(232, 226, 208); doc.setLineWidth(0.5);
-        doc.line(marginX, y + 6, pageWidth - marginX, y + 6);
-        y += 26;
-      };
-
-      invoiceRow(`Principal (${result.cleanPx.toFixed(3)} × ${fmtFace(face / 100)})`, sym + fmtMoney(result.principalAmt));
-      invoiceRow(`Accrued Interest (${result.days} days)`, sym + fmtMoney(result.aiAmt));
-
-      // Total card
-      y += 20;
-      doc.setFillColor(33, 75, 61);
-      doc.rect(marginX, y, pageWidth - 2 * marginX, 80, 'F');
-      doc.setTextColor(248, 244, 234);
+      ensureSpace(110);
+      cursor += 16;
+      doc.setFillColor(...TEAL);
+      doc.rect(marginX, cursor, contentW, 84, 'F');
+      doc.setTextColor(255, 255, 255);
       doc.setFont('helvetica', 'bold'); doc.setFontSize(10);
-      doc.text(isBuy ? 'YOU PAY' : 'YOU RECEIVE', marginX + 25, y + 32);
-      doc.setFont('times', 'normal'); doc.setFontSize(36);
-      doc.text(sym + fmtMoney(result.totalAmt), pageWidth - marginX - 25, y + 50, { align: 'right' });
-      doc.setFont('helvetica', 'italic'); doc.setFontSize(9); doc.setTextColor(200, 215, 207);
-      doc.text(`${currency} · per dirty price ${result.dirtyPx.toFixed(4)}`, marginX + 25, y + 60);
+      doc.text(isBuy ? 'YOU PAY' : 'YOU RECEIVE', marginX + 25, cursor + 32);
+      doc.setFont('times', 'normal'); doc.setFontSize(30);
+      doc.text(money(result.totalAmt), pageWidth - marginX - 25, cursor + 40, { align: 'right' });
+      doc.setFont('helvetica', 'italic'); doc.setFontSize(9); doc.setTextColor(200, 220, 230);
+      doc.text(`Settlement in ${currency} · dirty price ${result.dirtyPx.toFixed(4)} per 100`,
+               marginX + 25, cursor + 64);
+      cursor += 84;
 
-      // Footer on every page (using internal page tracking)
-      const pageCount = doc.internal.getNumberOfPages();
-      for (let p = 1; p <= pageCount; p++) {
-        doc.setPage(p);
-        doc.setFont('times', 'italic'); doc.setFontSize(8); doc.setTextColor(142, 138, 130);
-        if (p > 1) {
-          doc.text('Yield Calculator · yieldcalculator.tech · hello@yieldcalculator.tech',
-                   pageWidth / 2, pageHeight - 30, { align: 'center' });
-        }
-      }
-
+      // Cover page footer was drawn inline; ensure all later pages have chrome.
+      doc.setPage(1);
       doc.save(`Settlement_${bond.isin}_${isoDate(now)}.pdf`);
       setPdfStatus(`✓ Exported · ${ref}`);
     } catch (e) {
