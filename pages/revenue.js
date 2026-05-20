@@ -145,6 +145,7 @@ export default function Revenue() {
             <Link href="/portfolio" className="hd-link">Portfolio</Link>
             <Link href="/curve" className="hd-link">Yield Curve</Link>
             <Link href="/fx" className="hd-link">FX</Link>
+            <Link href="/risk" className="hd-link">Risk</Link>
           </nav>
         </div>
       </header>
