@@ -823,6 +823,7 @@ export default function Calc() {
             <Link href="/portfolio" className="pn-mod">Portfolio</Link>
             <Link href="/curve" className="pn-mod">Yield Curve</Link>
             <Link href="/fx" className="pn-mod">FX</Link>
+            <Link href="/risk" className="pn-mod">Risk</Link>
           </div>
           <div className="nav-menu">
             <button className={`nav-trigger ${navOpen ? 'on' : ''}`} onClick={() => setNavOpen(!navOpen)} aria-label="Open menu">
@@ -839,6 +840,7 @@ export default function Calc() {
                 <Link href="/portfolio" className="np-link" onClick={() => setNavOpen(false)}>Portfolio</Link>
                 <Link href="/curve" className="np-link" onClick={() => setNavOpen(false)}>Yield Curve</Link>
                 <Link href="/fx" className="np-link" onClick={() => setNavOpen(false)}>FX</Link>
+                <Link href="/risk" className="np-link" onClick={() => setNavOpen(false)}>Risk</Link>
               </div>
             )}
           </div>
