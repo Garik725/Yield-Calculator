@@ -132,6 +132,7 @@ export default function FX() {
             <Link href="/portfolio" className="hd-link">Portfolio</Link>
             <Link href="/curve" className="hd-link">Yield Curve</Link>
             <Link href="/fx" className="hd-link active">FX</Link>
+            <Link href="/risk" className="hd-link">Risk</Link>
           </nav>
           <Link href="/" className="hd-back">← Home</Link>
         </div>
