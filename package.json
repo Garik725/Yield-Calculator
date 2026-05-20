@@ -4,7 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "node __tests__/bondMath.test.mjs && node __tests__/riskMath.test.mjs && node __tests__/priceData.test.mjs && next build",
+    "test": "node __tests__/bondMath.test.mjs && node __tests__/riskMath.test.mjs && node __tests__/priceData.test.mjs",
     "start": "next start"
   },
   "dependencies": {
