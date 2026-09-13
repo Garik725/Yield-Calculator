@@ -800,7 +800,25 @@ const tc = TYPE_CONFIG[h.type] || TYPE_CONFIG.stock;
 </div>
 
 <div className={`r mono ${h.chg >= 0 ? 'pos' : 'neg'}`}>
-                    <div className="r mono mv">{fmtShort(mv)}</div>
+                    <div className="r mono mv">
+  {fmtShort(mv)}
+</div>
+
+<div
+  className={`r mono ${
+    unrealized !== null
+      ? unrealized >= 0
+        ? 'pos'
+        : 'neg'
+      : ''
+  }`}
+>
+  {unrealized !== null
+    ? `${unrealized >= 0 ? '+' : '−'}${fmtShort(Math.abs(unrealized))}`
+    : '–'}
+</div>
+
+<div className="r mono">{wt}%</div>
                     <div className="r mono">{wt}%</div>
                     <div className="c row-actions">
                       {isEditing ? (
