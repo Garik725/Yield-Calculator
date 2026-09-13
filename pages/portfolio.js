@@ -1,6 +1,5 @@
 // pages/portfolio.js
 // Module 03 · The Book · refined portfolio with localStorage
-// Self-contained (own header), matches new landing page design.
 
 import Head from 'next/head';
 import Link from 'next/link';
@@ -15,23 +14,23 @@ import {
 const STORAGE_KEY = 'yc.portfolio.v1';
 
 const TYPE_CONFIG = {
-  stock: { name: 'Stock',     bg: '#E5ECE7', fg: '#214B3D' },
-  bond:  { name: 'Bond',      bg: '#F0E8D4', fg: '#7A6228' },
-  etf:   { name: 'ETF',       bg: '#E0EDF1', fg: '#2D5360' },
-  fx:    { name: 'FX / Cash', bg: '#EFE3EB', fg: '#5C3550' },
+  stock: { name: 'Stock', bg: '#E5ECE7', fg: '#214B3D' },
+  bond: { name: 'Bond', bg: '#F0E8D4', fg: '#7A6228' },
+  etf: { name: 'ETF', bg: '#E0EDF1', fg: '#2D5360' },
+  fx: { name: 'FX / Cash', bg: '#EFE3EB', fg: '#5C3550' },
 };
 
 const DEMO_PORTFOLIO = [
-  { id: 'd1',  tkr: 'AAPL',    type: 'stock', qty: 250,     price: 195.50,  purchasePrice: 172.40, chg:  1.25 },
-  { id: 'd2',  tkr: 'MSFT',    type: 'stock', qty: 120,     price: 412.88,  purchasePrice: 365.20, chg: -2.15 },
-  { id: 'd3',  tkr: 'NVDA',    type: 'stock', qty: 80,      price: 875.40,  purchasePrice: 710.00, chg: 15.20 },
-  { id: 'd4',  tkr: 'VOO',     type: 'etf',   qty: 200,     price: 485.20,  purchasePrice: 452.00, chg:  2.10 },
-  { id: 'd5',  tkr: 'US10Y',   type: 'bond',  qty: 500000,  price: 98.35,   purchasePrice: 96.75, chg:  0.12 },
-  { id: 'd6',  tkr: 'AAPL27',  type: 'bond',  qty: 250000,  price: 95.80,   purchasePrice: 97.10, chg: -0.08 },
-  { id: 'd7',  tkr: 'BND',     type: 'etf',   qty: 350,     price: 72.50,   purchasePrice: 70.20, chg: -0.15 },
-  { id: 'd8',  tkr: 'EUR.USD', type: 'fx',    qty: 45000,   price: 1.085,   purchasePrice: 1.070, chg:  0.003 },
-  { id: 'd9',  tkr: 'GLD',     type: 'etf',   qty: 100,     price: 215.40,  purchasePrice: 198.00, chg:  1.20 },
-  { id: 'd10', tkr: 'JPM28',   type: 'bond',  qty: 150000,  price: 101.25,  purchasePrice: 99.40, chg:  0.05 },
+  { id: 'd1', tkr: 'AAPL', type: 'stock', qty: 250, price: 195.50, purchasePrice: 172.40, chg: 1.25 },
+  { id: 'd2', tkr: 'MSFT', type: 'stock', qty: 120, price: 412.88, purchasePrice: 365.20, chg: -2.15 },
+  { id: 'd3', tkr: 'NVDA', type: 'stock', qty: 80, price: 875.40, purchasePrice: 710.00, chg: 15.20 },
+  { id: 'd4', tkr: 'VOO', type: 'etf', qty: 200, price: 485.20, purchasePrice: 452.00, chg: 2.10 },
+  { id: 'd5', tkr: 'US10Y', type: 'bond', qty: 500000, price: 98.35, purchasePrice: 96.75, chg: 0.12 },
+  { id: 'd6', tkr: 'AAPL27', type: 'bond', qty: 250000, price: 95.80, purchasePrice: 97.10, chg: -0.08 },
+  { id: 'd7', tkr: 'BND', type: 'etf', qty: 350, price: 72.50, purchasePrice: 70.20, chg: -0.15 },
+  { id: 'd8', tkr: 'EUR.USD', type: 'fx', qty: 45000, price: 1.085, purchasePrice: 1.070, chg: 0.003 },
+  { id: 'd9', tkr: 'GLD', type: 'etf', qty: 100, price: 215.40, purchasePrice: 198.00, chg: 1.20 },
+  { id: 'd10', tkr: 'JPM28', type: 'bond', qty: 150000, price: 101.25, purchasePrice: 99.40, chg: 0.05 },
 ];
 
 const fmt = (n, dp = 2) =>
@@ -42,8 +41,10 @@ const fmt = (n, dp = 2) =>
 
 const fmtShort = n => {
   const abs = Math.abs(n);
+
   if (abs >= 1e6) return '$' + (n / 1e6).toFixed(2) + 'M';
   if (abs >= 1e3) return '$' + (n / 1e3).toFixed(1) + 'k';
+
   return '$' + fmt(n);
 };
 
@@ -63,6 +64,14 @@ export default function Portfolio() {
   const [toast, setToast] = useState('');
   const importRef = useRef(null);
 
+  const [lookupStatus, setLookupStatus] = useState('');
+  const [refreshing, setRefreshing] = useState(false);
+  const [lastRefreshed, setLastRefreshed] = useState(null);
+  const [didInitialRefresh, setDidInitialRefresh] = useState(false);
+
+  const isAutoDayChange =
+    form.type === 'stock' || form.type === 'etf';
+
   useEffect(() => {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
@@ -78,8 +87,6 @@ export default function Portfolio() {
       // ignore
     }
   }, []);
-
-  const [didInitialRefresh, setDidInitialRefresh] = useState(false);
 
   useEffect(() => {
     if (didInitialRefresh) return;
@@ -120,16 +127,16 @@ export default function Portfolio() {
     setTimeout(() => setToast(''), 2400);
   };
 
-  const [lookupStatus, setLookupStatus] = useState('');
-  const [refreshing, setRefreshing] = useState(false);
-  const [lastRefreshed, setLastRefreshed] = useState(null);
-
   const addPosition = () => {
     const tkr = form.tkr.trim().toUpperCase();
     const qty = parseFloat(form.qty);
     const price = parseFloat(form.price);
     const purchasePrice = parseFloat(form.purchasePrice);
-    const chg = parseFloat(form.chg) || 0;
+
+    const chg =
+      form.type === 'stock' || form.type === 'etf'
+        ? parseFloat(form.chg) || 0
+        : parseFloat(form.chg) || 0;
 
     if (
       !tkr ||
@@ -215,9 +222,7 @@ export default function Portfolio() {
     );
 
     if (refreshable.length === 0) {
-      if (!silent) {
-        showToast('No stocks or ETFs to refresh');
-      }
+      if (!silent) showToast('No stocks or ETFs to refresh');
       return;
     }
 
@@ -232,9 +237,7 @@ export default function Portfolio() {
     }
 
     try {
-      const tickers = refreshable
-        .map(h => h.tkr)
-        .join(',');
+      const tickers = refreshable.map(h => h.tkr).join(',');
 
       const r = await fetch(
         `/api/quote?ticker=${encodeURIComponent(tickers)}`
@@ -313,6 +316,8 @@ export default function Portfolio() {
 
     if (!row) return;
 
+    const oldHolding = holdings.find(h => h.id === id);
+
     const qty = parseFloat(
       row.querySelector('[data-field="qty"]').value
     );
@@ -322,18 +327,18 @@ export default function Portfolio() {
     );
 
     const purchasePriceInput =
-      row.querySelector(
-        '[data-field="purchasePrice"]'
-      );
+      row.querySelector('[data-field="purchasePrice"]');
 
     const purchasePrice = purchasePriceInput
       ? parseFloat(purchasePriceInput.value)
       : null;
 
-    const chg =
-      parseFloat(
-        row.querySelector('[data-field="chg"]').value
-      ) || 0;
+    const chgInput =
+      row.querySelector('[data-field="chg"]');
+
+    const chg = chgInput
+      ? parseFloat(chgInput.value) || 0
+      : oldHolding?.chg || 0;
 
     if (
       isNaN(qty) ||
@@ -353,8 +358,7 @@ export default function Portfolio() {
               qty,
               price,
               purchasePrice:
-                !isNaN(purchasePrice) &&
-                purchasePrice > 0
+                !isNaN(purchasePrice) && purchasePrice > 0
                   ? purchasePrice
                   : null,
               chg,
@@ -370,17 +374,13 @@ export default function Portfolio() {
   const loadDemo = () => {
     if (
       holdings.length &&
-      !confirm(
-        'Replace current portfolio with demo data?'
-      )
+      !confirm('Replace current portfolio with demo data?')
     ) {
       return;
     }
 
     setHoldings(
-      JSON.parse(
-        JSON.stringify(DEMO_PORTFOLIO)
-      )
+      JSON.parse(JSON.stringify(DEMO_PORTFOLIO))
     );
 
     showToast('Demo portfolio loaded');
@@ -393,9 +393,7 @@ export default function Portfolio() {
     }
 
     if (
-      !confirm(
-        `Clear all ${holdings.length} positions?`
-      )
+      !confirm(`Clear all ${holdings.length} positions?`)
     ) {
       return;
     }
@@ -413,8 +411,7 @@ export default function Portfolio() {
     showToast('Generating PDF...');
 
     try {
-      const { default: jsPDF } =
-        await import('jspdf');
+      const { default: jsPDF } = await import('jspdf');
 
       const doc = new jsPDF({
         orientation: 'portrait',
@@ -422,93 +419,63 @@ export default function Portfolio() {
         format: 'a4'
       });
 
-      const pageWidth =
-        doc.internal.pageSize.getWidth();
-
-      const pageHeight =
-        doc.internal.pageSize.getHeight();
-
+      const pageWidth = doc.internal.pageSize.getWidth();
+      const pageHeight = doc.internal.pageSize.getHeight();
       const marginX = 50;
 
-      const totalVal =
-        holdings.reduce(
-          (s, h) => s + calcMV(h),
-          0
-        );
+      const totalVal = holdings.reduce(
+        (s, h) => s + calcMV(h),
+        0
+      );
 
-      const totalPrev =
-        holdings.reduce(
-          (s, h) => s + calcMVPrev(h),
-          0
-        );
+      const totalPrev = holdings.reduce(
+        (s, h) => s + calcMVPrev(h),
+        0
+      );
 
-      const dayPL =
-        totalVal - totalPrev;
+      const dayPL = totalVal - totalPrev;
 
       const dayPct =
         totalPrev > 0
           ? (dayPL / totalPrev) * 100
           : 0;
 
-      const top =
-        [...holdings].sort(
-          (a, b) =>
-            calcMV(b) - calcMV(a)
-        )[0];
+      const top = [...holdings].sort(
+        (a, b) => calcMV(b) - calcMV(a)
+      )[0];
 
-      const dateStr =
-        new Date().toLocaleDateString(
-          'en-US',
-          {
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric'
-          }
-        );
+      const dateStr = new Date().toLocaleDateString(
+        'en-US',
+        {
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric'
+        }
+      );
 
       doc.setDrawColor(33, 75, 61);
       doc.setLineWidth(2);
-      doc.line(
-        marginX,
-        80,
-        marginX + 60,
-        80
-      );
+      doc.line(marginX, 80, marginX + 60, 80);
 
       doc.setTextColor(33, 75, 61);
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(9);
-      doc.text(
-        'YIELD CALCULATOR',
-        marginX,
-        100
-      );
+      doc.text('YIELD CALCULATOR', marginX, 100);
 
       doc.setTextColor(26, 24, 21);
       doc.setFont('times', 'normal');
       doc.setFontSize(38);
-
-      doc.text(
-        'Portfolio Statement',
-        marginX,
-        160
-      );
+      doc.text('Portfolio Statement', marginX, 160);
 
       doc.setFont('times', 'italic');
       doc.setFontSize(14);
       doc.setTextColor(107, 103, 96);
-
-      doc.text(
-        `as of ${dateStr}`,
-        marginX,
-        185
-      );
+      doc.text(`as of ${dateStr}`, marginX, 185);
 
       const cardY = 240;
 
       doc.setDrawColor(221, 213, 191);
       doc.setLineWidth(1);
-
       doc.rect(
         marginX,
         cardY,
@@ -522,49 +489,22 @@ export default function Portfolio() {
         y,
         color
       ) => {
-        doc.setFont(
-          'helvetica',
-          'bold'
-        );
-
+        doc.setFont('helvetica', 'bold');
         doc.setFontSize(8);
+        doc.setTextColor(107, 103, 96);
+        doc.text(label.toUpperCase(), marginX + 25, y);
 
-        doc.setTextColor(
-          107,
-          103,
-          96
-        );
-
-        doc.text(
-          label.toUpperCase(),
-          marginX + 25,
-          y
-        );
-
-        doc.setFont(
-          'times',
-          'normal'
-        );
-
+        doc.setFont('times', 'normal');
         doc.setFontSize(22);
-
         doc.setTextColor(
-          ...(color || [
-            26,
-            24,
-            21
-          ])
+          ...(color || [26, 24, 21])
         );
 
         doc.text(
           value,
-          pageWidth -
-            marginX -
-            25,
+          pageWidth - marginX - 25,
           y,
-          {
-            align: 'right'
-          }
+          { align: 'right' }
         );
       };
 
@@ -576,20 +516,10 @@ export default function Portfolio() {
 
       statRow(
         "Today's P&L",
-        (dayPL >= 0
-          ? '+'
-          : '−') +
+        (dayPL >= 0 ? '+' : '−') +
           '$' +
-          fmt(
-            Math.abs(dayPL)
-          ) +
-          ` (${
-            dayPct >= 0
-              ? '+'
-              : ''
-          }${dayPct.toFixed(
-            2
-          )}%)`,
+          fmt(Math.abs(dayPL)) +
+          ` (${dayPct >= 0 ? '+' : ''}${dayPct.toFixed(2)}%)`,
         cardY + 110,
         dayPL >= 0
           ? [31, 94, 64]
@@ -598,9 +528,7 @@ export default function Portfolio() {
 
       statRow(
         'Positions',
-        String(
-          holdings.length
-        ),
+        String(holdings.length),
         cardY + 165
       );
 
@@ -608,62 +536,34 @@ export default function Portfolio() {
         'Top Holding',
         (top?.tkr || '–') +
           (top
-            ? ` · ${(
-                (calcMV(top) /
-                  totalVal) *
-                100
-              ).toFixed(
-                1
-              )}%`
+            ? ` · ${((calcMV(top) / totalVal) * 100).toFixed(1)}%`
             : ''),
         cardY + 215
       );
 
-      doc.setFont(
-        'times',
-        'italic'
-      );
-
+      doc.setFont('times', 'italic');
       doc.setFontSize(9);
-
-      doc.setTextColor(
-        142,
-        138,
-        130
-      );
+      doc.setTextColor(142, 138, 130);
 
       doc.text(
         'Generated by Yield Calculator · yieldcalculator.tech',
         pageWidth / 2,
         pageHeight - 50,
-        {
-          align: 'center'
-        }
+        { align: 'center' }
       );
 
       doc.text(
         'For informational purposes only. Not financial advice.',
         pageWidth / 2,
         pageHeight - 35,
-        {
-          align: 'center'
-        }
+        { align: 'center' }
       );
 
       doc.addPage();
 
-      doc.setFont(
-        'helvetica',
-        'normal'
-      );
-
+      doc.setFont('helvetica', 'normal');
       doc.setFontSize(8);
-
-      doc.setTextColor(
-        142,
-        138,
-        130
-      );
+      doc.setTextColor(142, 138, 130);
 
       doc.text(
         'YIELD CALCULATOR · PORTFOLIO STATEMENT',
@@ -673,182 +573,83 @@ export default function Portfolio() {
 
       doc.text(
         dateStr,
-        pageWidth -
-          marginX,
+        pageWidth - marginX,
         40,
-        {
-          align: 'right'
-        }
+        { align: 'right' }
       );
 
-      doc.setFont(
-        'times',
-        'normal'
-      );
-
+      doc.setFont('times', 'normal');
       doc.setFontSize(24);
+      doc.setTextColor(26, 24, 21);
+      doc.text('Holdings', marginX, 85);
 
-      doc.setTextColor(
-        26,
-        24,
-        21
-      );
-
-      doc.text(
-        'Holdings',
-        marginX,
-        85
-      );
-
-      doc.setDrawColor(
-        26,
-        24,
-        21
-      );
-
+      doc.setDrawColor(26, 24, 21);
       doc.setLineWidth(1);
-
       doc.line(
         marginX,
         95,
-        pageWidth -
-          marginX,
+        pageWidth - marginX,
         95
       );
 
-      const colTkr =
-        marginX;
-
-      const colType =
-        marginX + 80;
-
-      const colQty =
-        marginX + 195;
-
-      const colPx =
-        marginX + 285;
-
-      const colChg =
-        marginX + 360;
-
-      const colMV =
-        marginX + 460;
-
-      const colWt =
-        pageWidth -
-        marginX;
+      const colTkr = marginX;
+      const colType = marginX + 80;
+      const colQty = marginX + 195;
+      const colPx = marginX + 285;
+      const colChg = marginX + 360;
+      const colMV = marginX + 460;
+      const colWt = pageWidth - marginX;
 
       let y = 120;
 
-      doc.setFont(
-        'helvetica',
-        'bold'
-      );
-
+      doc.setFont('helvetica', 'bold');
       doc.setFontSize(8);
+      doc.setTextColor(107, 103, 96);
 
-      doc.setTextColor(
-        107,
-        103,
-        96
-      );
+      doc.text('TICKER', colTkr, y);
+      doc.text('TYPE', colType, y);
 
-      doc.text(
-        'TICKER',
-        colTkr,
-        y
-      );
+      doc.text('QUANTITY', colQty, y, {
+        align: 'right'
+      });
 
-      doc.text(
-        'TYPE',
-        colType,
-        y
-      );
+      doc.text('PRICE', colPx, y, {
+        align: 'right'
+      });
 
-      doc.text(
-        'QUANTITY',
-        colQty,
-        y,
-        {
-          align: 'right'
-        }
-      );
+      doc.text('DAY CHG', colChg, y, {
+        align: 'right'
+      });
 
-      doc.text(
-        'PRICE',
-        colPx,
-        y,
-        {
-          align: 'right'
-        }
-      );
+      doc.text('MARKET VALUE', colMV, y, {
+        align: 'right'
+      });
 
-      doc.text(
-        'DAY CHG',
-        colChg,
-        y,
-        {
-          align: 'right'
-        }
-      );
-
-      doc.text(
-        'MARKET VALUE',
-        colMV,
-        y,
-        {
-          align: 'right'
-        }
-      );
-
-      doc.text(
-        'WEIGHT',
-        colWt,
-        y,
-        {
-          align: 'right'
-        }
-      );
+      doc.text('WEIGHT', colWt, y, {
+        align: 'right'
+      });
 
       y += 8;
 
-      doc.setDrawColor(
-        221,
-        213,
-        191
-      );
-
+      doc.setDrawColor(221, 213, 191);
       doc.setLineWidth(0.5);
 
       doc.line(
         marginX,
         y,
-        pageWidth -
-          marginX,
+        pageWidth - marginX,
         y
       );
 
       y += 18;
 
       for (const h of holdings) {
-        if (
-          y >
-          pageHeight - 80
-        ) {
+        if (y > pageHeight - 80) {
           doc.addPage();
 
-          doc.setFont(
-            'helvetica',
-            'normal'
-          );
-
+          doc.setFont('helvetica', 'normal');
           doc.setFontSize(8);
-
-          doc.setTextColor(
-            142,
-            138,
-            130
-          );
+          doc.setTextColor(142, 138, 130);
 
           doc.text(
             'YIELD CALCULATOR · PORTFOLIO STATEMENT (continued)',
@@ -859,153 +660,79 @@ export default function Portfolio() {
           y = 80;
         }
 
-        const mv =
-          calcMV(h);
+        const mv = calcMV(h);
 
-        const wt =
-          (
-            (mv /
-              totalVal) *
-            100
-          ).toFixed(1);
+        const wt = (
+          (mv / totalVal) * 100
+        ).toFixed(1);
 
-        doc.setFont(
-          'courier',
-          'bold'
-        );
-
+        doc.setFont('courier', 'bold');
         doc.setFontSize(10);
+        doc.setTextColor(26, 24, 21);
+        doc.text(h.tkr, colTkr, y);
 
-        doc.setTextColor(
-          26,
-          24,
-          21
-        );
-
-        doc.text(
-          h.tkr,
-          colTkr,
-          y
-        );
-
-        doc.setFont(
-          'helvetica',
-          'normal'
-        );
-
+        doc.setFont('helvetica', 'normal');
         doc.setFontSize(9);
-
-        doc.setTextColor(
-          107,
-          103,
-          96
-        );
+        doc.setTextColor(107, 103, 96);
 
         doc.text(
-          TYPE_CONFIG[
-            h.type
-          ]?.name ||
-            h.type,
+          TYPE_CONFIG[h.type]?.name || h.type,
           colType,
           y
         );
 
-        doc.setFont(
-          'courier',
-          'normal'
-        );
-
+        doc.setFont('courier', 'normal');
         doc.setFontSize(10);
-
-        doc.setTextColor(
-          26,
-          24,
-          21
-        );
+        doc.setTextColor(26, 24, 21);
 
         doc.text(
-          fmt(
-            h.qty,
-            0
-          ),
+          fmt(h.qty, 0),
           colQty,
           y,
-          {
-            align: 'right'
-          }
+          { align: 'right' }
         );
 
         doc.text(
           fmt(
             h.price,
-            h.type ===
-              'fx'
-              ? 4
-              : 2
+            h.type === 'fx' ? 4 : 2
           ),
           colPx,
           y,
-          {
-            align: 'right'
-          }
+          { align: 'right' }
         );
 
         doc.setTextColor(
-          ...(
-            h.chg >= 0
-              ? [
-                  31,
-                  94,
-                  64
-                ]
-              : [
-                  163,
-                  61,
-                  46
-                ]
-          )
+          ...(h.chg >= 0
+            ? [31, 94, 64]
+            : [163, 61, 46])
         );
 
         doc.text(
-          (h.chg >= 0
-            ? '+'
-            : '') +
+          (h.chg >= 0 ? '+' : '') +
             fmt(
               h.chg,
-              h.type ===
-                'fx'
-                ? 4
-                : 2
+              h.type === 'fx' ? 4 : 2
             ),
           colChg,
           y,
-          {
-            align: 'right'
-          }
+          { align: 'right' }
         );
 
-        doc.setTextColor(
-          26,
-          24,
-          21
-        );
+        doc.setTextColor(26, 24, 21);
 
         doc.text(
           fmtShort(mv),
           colMV,
           y,
-          {
-            align: 'right'
-          }
+          { align: 'right' }
         );
 
         doc.text(
           wt + '%',
           colWt,
           y,
-          {
-            align: 'right'
-          }
+          { align: 'right' }
         );
 
         y += 18;
@@ -1014,140 +741,78 @@ export default function Portfolio() {
       y += 4;
 
       doc.setLineWidth(1);
-
-      doc.setDrawColor(
-        26,
-        24,
-        21
-      );
+      doc.setDrawColor(26, 24, 21);
 
       doc.line(
         marginX,
         y,
-        pageWidth -
-          marginX,
+        pageWidth - marginX,
         y
       );
 
       y += 18;
 
-      doc.setFont(
-        'helvetica',
-        'bold'
-      );
-
+      doc.setFont('helvetica', 'bold');
       doc.setFontSize(9);
+      doc.setTextColor(107, 103, 96);
 
-      doc.setTextColor(
-        107,
-        103,
-        96
-      );
+      doc.text('TOTAL', colTkr, y);
 
-      doc.text(
-        'TOTAL',
-        colTkr,
-        y
-      );
-
-      doc.setFont(
-        'courier',
-        'bold'
-      );
-
+      doc.setFont('courier', 'bold');
       doc.setFontSize(11);
-
-      doc.setTextColor(
-        26,
-        24,
-        21
-      );
+      doc.setTextColor(26, 24, 21);
 
       doc.text(
-        fmtShort(
-          totalVal
-        ),
+        fmtShort(totalVal),
         colMV,
         y,
-        {
-          align: 'right'
-        }
+        { align: 'right' }
       );
 
       doc.text(
         '100.0%',
         colWt,
         y,
-        {
-          align: 'right'
-        }
+        { align: 'right' }
       );
 
       doc.addPage();
 
-      doc.setFont(
-        'helvetica',
-        'italic'
-      );
-
+      doc.setFont('helvetica', 'italic');
       doc.setFontSize(9);
-
-      doc.setTextColor(
-        142,
-        138,
-        130
-      );
+      doc.setTextColor(142, 138, 130);
 
       doc.text(
         '· DATA RECORD ·',
         pageWidth / 2,
         50,
-        {
-          align: 'center'
-        }
+        { align: 'center' }
       );
 
       doc.text(
         'This page allows this PDF to be re-imported into Yield Calculator.',
         pageWidth / 2,
         68,
-        {
-          align: 'center'
-        }
+        { align: 'center' }
       );
 
-      doc.setFont(
-        'courier',
-        'normal'
-      );
-
+      doc.setFont('courier', 'normal');
       doc.setFontSize(7);
+      doc.setTextColor(170, 165, 155);
 
-      doc.setTextColor(
-        170,
-        165,
-        155
+      const json = JSON.stringify({
+        version: 1,
+        positions: holdings
+      });
+
+      const data = btoa(
+        unescape(
+          encodeURIComponent(json)
+        )
       );
-
-      const json =
-        JSON.stringify({
-          version: 1,
-          positions: holdings
-        });
-
-      const data =
-        btoa(
-          unescape(
-            encodeURIComponent(
-              json
-            )
-          )
-        );
 
       const chunks =
-        data.match(
-          /.{1,90}/g
-        ) || [];
+        data.match(/.{1,90}/g) || [];
 
       let dy = 100;
 
@@ -1160,26 +825,14 @@ export default function Portfolio() {
       dy += 10;
 
       for (const chunk of chunks) {
-        if (
-          dy >
-          pageHeight - 40
-        ) {
+        if (dy > pageHeight - 40) {
           doc.addPage();
 
           dy = 60;
 
-          doc.setFont(
-            'courier',
-            'normal'
-          );
-
+          doc.setFont('courier', 'normal');
           doc.setFontSize(7);
-
-          doc.setTextColor(
-            170,
-            165,
-            155
-          );
+          doc.setTextColor(170, 165, 155);
         }
 
         doc.text(
@@ -1198,85 +851,61 @@ export default function Portfolio() {
       );
 
       doc.save(
-        `portfolio_${
-          new Date()
-            .toISOString()
-            .slice(0, 10)
-        }.pdf`
+        `portfolio_${new Date()
+          .toISOString()
+          .slice(0, 10)}.pdf`
       );
 
-      showToast(
-        'Portfolio exported to PDF'
-      );
+      showToast('Portfolio exported to PDF');
     } catch (err) {
       console.error(err);
 
       showToast(
-        'PDF export failed: ' +
-          err.message
+        'PDF export failed: ' + err.message
       );
     }
   };
 
   const importPDF = async event => {
-    const file =
-      event.target.files[0];
+    const file = event.target.files[0];
 
     if (!file) return;
 
     if (
-      !file.name
-        .toLowerCase()
-        .endsWith('.pdf')
+      !file.name.toLowerCase().endsWith('.pdf')
     ) {
-      showToast(
-        'Please select a PDF file'
-      );
-
-      event.target.value =
-        '';
-
+      showToast('Please select a PDF file');
+      event.target.value = '';
       return;
     }
 
     showToast('Reading PDF...');
 
     try {
-      if (
-        !window.pdfjsLib
-      ) {
+      if (!window.pdfjsLib) {
         await new Promise(
-          (
-            resolve,
-            reject
-          ) => {
+          (resolve, reject) => {
             const script =
-              document.createElement(
-                'script'
-              );
+              document.createElement('script');
 
             script.src =
               'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
 
-            script.onload =
-              () => {
-                window.pdfjsLib.GlobalWorkerOptions.workerSrc =
-                  'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+            script.onload = () => {
+              window.pdfjsLib.GlobalWorkerOptions.workerSrc =
+                'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
-                resolve();
-              };
+              resolve();
+            };
 
-            script.onerror =
-              () =>
-                reject(
-                  new Error(
-                    'Failed to load PDF reader'
-                  )
-                );
+            script.onerror = () =>
+              reject(
+                new Error(
+                  'Failed to load PDF reader'
+                )
+              );
 
-            document.body.appendChild(
-              script
-            );
+            document.body.appendChild(script);
           }
         );
       }
@@ -1295,8 +924,7 @@ export default function Portfolio() {
 
       for (
         let i = 1;
-        i <=
-        pdf.numPages;
+        i <= pdf.numPages;
         i++
       ) {
         const page =
@@ -1305,42 +933,30 @@ export default function Portfolio() {
         const content =
           await page.getTextContent();
 
-        allText +=
-          content.items
-            .map(
-              item =>
-                item.str
-            )
-            .join(' ');
+        allText += content.items
+          .map(item => item.str)
+          .join(' ');
       }
 
-      const match =
-        allText.match(
-          /~~YCDATA~~([\s\S]+?)~~ENDDATA~~/
-        );
+      const match = allText.match(
+        /~~YCDATA~~([\s\S]+?)~~ENDDATA~~/
+      );
 
       if (!match) {
         showToast(
           'This PDF was not exported from Yield Calculator'
         );
 
-        event.target.value =
-          '';
-
+        event.target.value = '';
         return;
       }
 
       const cleaned =
-        match[1].replace(
-          /\s/g,
-          ''
-        );
+        match[1].replace(/\s/g, '');
 
       const json =
         decodeURIComponent(
-          escape(
-            atob(cleaned)
-          )
+          escape(atob(cleaned))
         );
 
       const data =
@@ -1348,9 +964,7 @@ export default function Portfolio() {
 
       if (
         !data.positions ||
-        !Array.isArray(
-          data.positions
-        )
+        !Array.isArray(data.positions)
       ) {
         throw new Error(
           'Invalid data format'
@@ -1363,9 +977,7 @@ export default function Portfolio() {
           `Replace current portfolio (${holdings.length}) with imported (${data.positions.length})?`
         )
       ) {
-        event.target.value =
-          '';
-
+        event.target.value = '';
         return;
       }
 
@@ -1374,43 +986,27 @@ export default function Portfolio() {
           .map(p => ({
             id:
               p.id ||
-              (
-                'p' +
+              'p' +
                 Date.now() +
-                Math.random()
-              ),
+                Math.random(),
 
-            tkr:
-              p.tkr ||
-              '',
+            tkr: p.tkr || '',
 
-            type:
-              p.type ||
-              'stock',
+            type: p.type || 'stock',
 
             qty:
-              parseFloat(
-                p.qty
-              ) || 0,
+              parseFloat(p.qty) || 0,
 
             price:
-              parseFloat(
-                p.price
-              ) || 0,
+              parseFloat(p.price) || 0,
 
             purchasePrice:
-              parseFloat(
-                p.purchasePrice
-              ) > 0
-                ? parseFloat(
-                    p.purchasePrice
-                  )
+              parseFloat(p.purchasePrice) > 0
+                ? parseFloat(p.purchasePrice)
                 : null,
 
             chg:
-              parseFloat(
-                p.chg
-              ) || 0,
+              parseFloat(p.chg) || 0,
           }))
           .filter(
             p =>
@@ -1429,14 +1025,11 @@ export default function Portfolio() {
 
       showToast(
         'Import failed: ' +
-          (
-            err.message ||
-            'Could not read PDF'
-          )
+          (err.message ||
+            'Could not read PDF')
       );
     } finally {
-      event.target.value =
-        '';
+      event.target.value = '';
     }
   };
 
@@ -1444,96 +1037,60 @@ export default function Portfolio() {
     analyzePortfolioValuation(
       holdings,
       {
-        baseCurrency:
-          'USD',
-        useDirtyBondValue:
-          true
+        baseCurrency: 'USD',
+        useDirtyBondValue: true
       }
     );
 
   const total =
-    portfolioAnalytics
-      .valuation
-      .totalValue;
+    portfolioAnalytics.valuation.totalValue;
 
   const totalPrev =
-    portfolioAnalytics
-      .valuation
-      .totalPreviousValue ??
+    portfolioAnalytics.valuation.totalPreviousValue ??
     0;
 
   const dayPL =
-    portfolioAnalytics
-      .valuation
-      .dayPnL ??
+    portfolioAnalytics.valuation.dayPnL ??
     0;
 
   const dayPct =
-    portfolioAnalytics
-      .valuation
-      .dayReturn !== null
-      ? portfolioAnalytics
-          .valuation
-          .dayReturn *
-        100
+    portfolioAnalytics.valuation.dayReturn !== null
+      ? portfolioAnalytics.valuation.dayReturn * 100
       : 0;
 
   const byType =
     Object.fromEntries(
       Object.entries(
-        portfolioAnalytics
-          .allocations
-          .byAssetClass
-      ).map(
-        ([type, data]) => [
-          type,
-          data.value
-        ]
-      )
+        portfolioAnalytics.allocations.byAssetClass
+      ).map(([type, data]) => [
+        type,
+        data.value
+      ])
     );
 
   const topHolding =
-    portfolioAnalytics
-      .concentration
-      .largestHolding
+    portfolioAnalytics.concentration.largestHolding
       ? holdings.find(
           h =>
-            (
-              h.symbol ||
-              h.tkr
-            ) ===
-            portfolioAnalytics
-              .concentration
-              .largestHolding
-              .symbol
+            (h.symbol || h.tkr) ===
+            portfolioAnalytics.concentration
+              .largestHolding.symbol
         )
       : null;
 
   const totalCostBasis =
-    portfolioAnalytics
-      .valuation
-      .totalCostBasis;
+    portfolioAnalytics.valuation.totalCostBasis;
 
   const unrealizedPL =
-    portfolioAnalytics
-      .valuation
-      .unrealizedPnL;
+    portfolioAnalytics.valuation.unrealizedPnL;
 
   const totalReturnPct =
-    portfolioAnalytics
-      .valuation
-      .unrealizedReturn !==
-    null
-      ? portfolioAnalytics
-          .valuation
-          .unrealizedReturn *
-        100
+    portfolioAnalytics.valuation.unrealizedReturn !== null
+      ? portfolioAnalytics.valuation.unrealizedReturn * 100
       : null;
 
   const hasCostBasis =
-    portfolioAnalytics
-      .dataQuality
-      .completeCostBasis;
+    portfolioAnalytics.dataQuality.completeCostBasis;
 
   return (
     <>
@@ -1601,10 +1158,7 @@ export default function Portfolio() {
             </span>
 
             <span className="hd-name">
-              Yield{' '}
-              <i>
-                Calculator
-              </i>
+              Yield <i>Calculator</i>
             </span>
           </Link>
 
@@ -1663,10 +1217,7 @@ export default function Portfolio() {
               </div>
 
               <h1 className="page-h">
-                The{' '}
-                <em>
-                  Book.
-                </em>
+                The <em>Book.</em>
               </h1>
 
               <p className="page-lede">
@@ -1684,12 +1235,8 @@ export default function Portfolio() {
 
               <button
                 className="btn-ghost refresh"
-                onClick={
-                  refreshAllPrices
-                }
-                disabled={
-                  refreshing
-                }
+                onClick={refreshAllPrices}
+                disabled={refreshing}
               >
                 {refreshing
                   ? 'Refreshing…'
@@ -1745,54 +1292,38 @@ export default function Portfolio() {
                 <div className="ticker-wrap">
                   <input
                     type="text"
-                    value={
-                      form.tkr
-                    }
+                    value={form.tkr}
                     placeholder="AAPL"
-                    onChange={
-                      e => {
-                        setForm({
-                          ...form,
-                          tkr:
-                            e.target.value
-                        });
+                    onChange={e => {
+                      setForm({
+                        ...form,
+                        tkr: e.target.value
+                      });
 
-                        setLookupStatus(
-                          ''
-                        );
-                      }
-                    }
-                    onBlur={
-                      lookupPrice
-                    }
-                    onKeyDown={
-                      e =>
-                        e.key ===
-                          'Enter' &&
-                        (
-                          form.price
-                            ? addPosition()
-                            : lookupPrice()
-                        )
+                      setLookupStatus('');
+                    }}
+                    onBlur={lookupPrice}
+                    onKeyDown={e =>
+                      e.key === 'Enter' &&
+                      (form.price
+                        ? addPosition()
+                        : lookupPrice())
                     }
                   />
 
-                  {lookupStatus ===
-                    'loading' && (
+                  {lookupStatus === 'loading' && (
                     <span className="lookup-tag loading">
                       …
                     </span>
                   )}
 
-                  {lookupStatus ===
-                    'success' && (
+                  {lookupStatus === 'success' && (
                     <span className="lookup-tag success">
                       ✓ Live
                     </span>
                   )}
 
-                  {lookupStatus ===
-                    'error' && (
+                  {lookupStatus === 'error' && (
                     <span className="lookup-tag error">
                       Not found
                     </span>
@@ -1806,17 +1337,22 @@ export default function Portfolio() {
                 </label>
 
                 <select
-                  value={
-                    form.type
-                  }
-                  onChange={
-                    e =>
-                      setForm({
-                        ...form,
-                        type:
-                          e.target.value
-                      })
-                  }
+                  value={form.type}
+                  onChange={e => {
+                    const newType = e.target.value;
+
+                    setForm({
+                      ...form,
+                      type: newType,
+                      chg:
+                        newType === 'stock' ||
+                        newType === 'etf'
+                          ? '0'
+                          : form.chg
+                    });
+
+                    setLookupStatus('');
+                  }}
                 >
                   <option value="stock">
                     Stock
@@ -1843,24 +1379,18 @@ export default function Portfolio() {
 
                 <input
                   type="number"
-                  value={
-                    form.qty
-                  }
+                  value={form.qty}
                   placeholder="100"
                   step="any"
-                  onChange={
-                    e =>
-                      setForm({
-                        ...form,
-                        qty:
-                          e.target.value
-                      })
+                  onChange={e =>
+                    setForm({
+                      ...form,
+                      qty: e.target.value
+                    })
                   }
-                  onKeyDown={
-                    e =>
-                      e.key ===
-                        'Enter' &&
-                      addPosition()
+                  onKeyDown={e =>
+                    e.key === 'Enter' &&
+                    addPosition()
                   }
                 />
               </div>
@@ -1872,24 +1402,18 @@ export default function Portfolio() {
 
                 <input
                   type="number"
-                  value={
-                    form.price
-                  }
+                  value={form.price}
                   placeholder="195.50"
                   step="0.001"
-                  onChange={
-                    e =>
-                      setForm({
-                        ...form,
-                        price:
-                          e.target.value
-                      })
+                  onChange={e =>
+                    setForm({
+                      ...form,
+                      price: e.target.value
+                    })
                   }
-                  onKeyDown={
-                    e =>
-                      e.key ===
-                        'Enter' &&
-                      addPosition()
+                  onKeyDown={e =>
+                    e.key === 'Enter' &&
+                    addPosition()
                   }
                 />
               </div>
@@ -1901,24 +1425,18 @@ export default function Portfolio() {
 
                 <input
                   type="number"
-                  value={
-                    form.purchasePrice
-                  }
+                  value={form.purchasePrice}
                   placeholder="170.00"
                   step="0.001"
-                  onChange={
-                    e =>
-                      setForm({
-                        ...form,
-                        purchasePrice:
-                          e.target.value
-                      })
+                  onChange={e =>
+                    setForm({
+                      ...form,
+                      purchasePrice: e.target.value
+                    })
                   }
-                  onKeyDown={
-                    e =>
-                      e.key ===
-                        'Enter' &&
-                      addPosition()
+                  onKeyDown={e =>
+                    e.key === 'Enter' &&
+                    addPosition()
                   }
                 />
               </div>
@@ -1930,54 +1448,47 @@ export default function Portfolio() {
 
                 <input
                   type="number"
-                  value={
-                    form.chg
+                  value={form.chg}
+                  placeholder={
+                    isAutoDayChange
+                      ? 'Automatic'
+                      : '0.00'
                   }
                   step="0.01"
-                  onChange={
-                    e =>
-                      setForm({
-                        ...form,
-                        chg:
-                          e.target.value
-                      })
+                  disabled={isAutoDayChange}
+                  title={
+                    isAutoDayChange
+                      ? 'Automatically fetched from market data'
+                      : 'Enter the daily price change manually'
                   }
-                  onKeyDown={
-                    e =>
-                      e.key ===
-                        'Enter' &&
-                      addPosition()
+                  onChange={e =>
+                    setForm({
+                      ...form,
+                      chg: e.target.value
+                    })
+                  }
+                  onKeyDown={e =>
+                    e.key === 'Enter' &&
+                    addPosition()
                   }
                 />
+
+                <span className="field-note">
+                  {isAutoDayChange
+                    ? 'Auto from market data'
+                    : 'Manual'}
+                </span>
               </div>
             </div>
 
             <div className="add-actions">
               <p className="add-hint">
-                For{' '}
-                <b>
-                  bonds
-                </b>
-                : quantity = face value, price = clean price per 100. For{' '}
-                <b>
-                  stocks
-                </b>
-                /
-                <b>
-                  ETFs
-                </b>
-                : shares × price. For{' '}
-                <b>
-                  FX
-                </b>
-                : cash × rate to USD.
+                For <b>stocks</b>/<b>ETFs</b>, price and day change can be fetched automatically. For <b>bonds</b>, quantity = face value and price = clean price per 100. For <b>FX</b>, cash × rate to USD.
               </p>
 
               <button
                 className="btn-add"
-                onClick={
-                  addPosition
-                }
+                onClick={addPosition}
               >
                 + Add Position
               </button>
@@ -1992,40 +1503,20 @@ export default function Portfolio() {
                 </div>
 
                 <div className="kpi-v">
-                  {fmtShort(
-                    total
-                  )}
+                  {fmtShort(total)}
                 </div>
 
                 <div
                   className={`kpi-c ${
-                    dayPL >= 0
-                      ? 'pos'
-                      : 'neg'
+                    dayPL >= 0 ? 'pos' : 'neg'
                   }`}
                 >
-                  {dayPL >= 0
-                    ? '▲'
-                    : '▼'}{' '}
-                  {fmt(
-                    Math.abs(
-                      dayPct
-                    ),
-                    2
-                  )}
-                  % today
+                  {dayPL >= 0 ? '▲' : '▼'}{' '}
+                  {fmt(Math.abs(dayPct), 2)}% today
 
                   <span className="kpi-c-sub">
-                    (
-                    {dayPL >= 0
-                      ? '+'
-                      : '−'}
-                    {fmtShort(
-                      Math.abs(
-                        dayPL
-                      )
-                    )}
-                    )
+                    ({dayPL >= 0 ? '+' : '−'}
+                    {fmtShort(Math.abs(dayPL))})
                   </span>
                 </div>
               </div>
@@ -2038,33 +1529,27 @@ export default function Portfolio() {
                 <div
                   className={`kpi-v ${
                     hasCostBasis
-                      ? unrealizedPL >=
-                        0
+                      ? unrealizedPL >= 0
                         ? 'pos'
                         : 'neg'
                       : ''
                   }`}
                 >
                   {hasCostBasis &&
-                  unrealizedPL !==
-                    null
+                  unrealizedPL !== null
                     ? `${
-                        unrealizedPL >=
-                        0
+                        unrealizedPL >= 0
                           ? '+'
                           : '−'
                       }${fmtShort(
-                        Math.abs(
-                          unrealizedPL
-                        )
+                        Math.abs(unrealizedPL)
                       )}`
                     : '–'}
                 </div>
 
                 <div className="kpi-s">
                   {hasCostBasis &&
-                  totalCostBasis !==
-                    null
+                  totalCostBasis !== null
                     ? `Cost basis: ${fmtShort(
                         totalCostBasis
                       )}`
@@ -2079,20 +1564,16 @@ export default function Portfolio() {
 
                 <div
                   className={`kpi-v ${
-                    totalReturnPct !==
-                    null
-                      ? totalReturnPct >=
-                        0
+                    totalReturnPct !== null
+                      ? totalReturnPct >= 0
                         ? 'pos'
                         : 'neg'
                       : ''
                   }`}
                 >
-                  {totalReturnPct !==
-                  null
+                  {totalReturnPct !== null
                     ? `${
-                        totalReturnPct >=
-                        0
+                        totalReturnPct >= 0
                           ? '+'
                           : ''
                       }${fmt(
@@ -2113,27 +1594,18 @@ export default function Portfolio() {
                 </div>
 
                 <div className="kpi-v top">
-                  {topHolding?.tkr ||
-                    '–'}
+                  {topHolding?.tkr || '–'}
                 </div>
 
                 <div className="kpi-s">
                   {topHolding
                     ? `${fmtShort(
-                        calcMV(
-                          topHolding
-                        )
+                        calcMV(topHolding)
                       )} (${(
-                        (
-                          calcMV(
-                            topHolding
-                          ) /
-                          total
-                        ) *
+                        (calcMV(topHolding) /
+                          total) *
                         100
-                      ).toFixed(
-                        1
-                      )}%)`
+                      ).toFixed(1)}%)`
                     : '–'}
                 </div>
               </div>
@@ -2143,10 +1615,8 @@ export default function Portfolio() {
           {holdings.length > 0 &&
             holdings.some(
               h =>
-                h.type ===
-                  'stock' ||
-                h.type ===
-                  'etf'
+                h.type === 'stock' ||
+                h.type === 'etf'
             ) && (
               <div className="data-status">
                 <div className="ds-line">
@@ -2163,29 +1633,22 @@ export default function Portfolio() {
                         {lastRefreshed.toLocaleTimeString(
                           'en-US',
                           {
-                            hour:
-                              'numeric',
-                            minute:
-                              '2-digit',
-                            second:
-                              '2-digit'
+                            hour: 'numeric',
+                            minute: '2-digit',
+                            second: '2-digit'
                           }
                         )}
                       </b>
                     </span>
                   ) : (
                     <span className="ds-text">
-                      Click{' '}
-                      <b>
-                        Refresh Prices
-                      </b>{' '}
-                      to fetch the latest stock &amp; ETF prices
+                      Click <b>Refresh Prices</b> to fetch the latest stock &amp; ETF prices
                     </span>
                   )}
                 </div>
 
                 <div className="ds-note">
-                  EODHD data is 15-minute delayed · bonds and FX positions are not auto-refreshed
+                  Stock &amp; ETF day change is automatic · bonds and FX remain manual
                 </div>
               </div>
             )}
@@ -2206,9 +1669,7 @@ export default function Portfolio() {
 
               <button
                 className="btn-fill"
-                onClick={
-                  loadDemo
-                }
+                onClick={loadDemo}
               >
                 Load Demo Portfolio
               </button>
@@ -2216,351 +1677,252 @@ export default function Portfolio() {
           ) : (
             <div className="table">
               <div className="thead">
-                <div>
-                  Ticker
-                </div>
-
-                <div>
-                  Type
-                </div>
-
-                <div className="r">
-                  Quantity
-                </div>
-
-                <div className="r">
-                  Price
-                </div>
-
-                <div className="r">
-                  Purchase Price
-                </div>
-
-                <div className="r">
-                  Day Chg
-                </div>
-
-                <div className="r">
-                  Market Value
-                </div>
-
-                <div className="r">
-                  Unrealized P&amp;L
-                </div>
-
-                <div className="r">
-                  Weight
-                </div>
-
-                <div className="c">
-                  ·
-                </div>
+                <div>Ticker</div>
+                <div>Type</div>
+                <div className="r">Quantity</div>
+                <div className="r">Price</div>
+                <div className="r">Purchase Price</div>
+                <div className="r">Day Chg</div>
+                <div className="r">Market Value</div>
+                <div className="r">Unrealized P&amp;L</div>
+                <div className="r">Weight</div>
+                <div className="c">·</div>
               </div>
 
-              {holdings.map(
-                h => {
-                  const mv =
-                    calcMV(h);
+              {holdings.map(h => {
+                const mv = calcMV(h);
 
-                  const wt =
-                    total > 0
-                      ? (
-                          (
-                            mv /
-                            total
-                          ) *
-                          100
-                        ).toFixed(
-                          1
+                const wt =
+                  total > 0
+                    ? (
+                        (mv / total) * 100
+                      ).toFixed(1)
+                    : '0.0';
+
+                const analyzedPosition =
+                  portfolioAnalytics.positions.find(
+                    p => p.id === h.id
+                  );
+
+                const unrealized =
+                  analyzedPosition?.unrealizedPnLBase ??
+                  null;
+
+                const isEditing =
+                  editingId === h.id;
+
+                const tc =
+                  TYPE_CONFIG[h.type] ||
+                  TYPE_CONFIG.stock;
+
+                const autoRowDayChange =
+                  h.type === 'stock' ||
+                  h.type === 'etf';
+
+                return (
+                  <div
+                    key={h.id}
+                    className={`trow ${
+                      isEditing ? 'editing' : ''
+                    }`}
+                    data-row={h.id}
+                  >
+                    <div className="td-tkr">
+                      {h.tkr}
+                    </div>
+
+                    <div>
+                      <span
+                        className="pill"
+                        style={{
+                          background: tc.bg,
+                          color: tc.fg
+                        }}
+                      >
+                        {tc.name}
+                      </span>
+                    </div>
+
+                    <div className="r mono">
+                      {isEditing ? (
+                        <input
+                          defaultValue={h.qty}
+                          data-field="qty"
+                          className="inline-i"
+                          type="number"
+                          step="any"
+                        />
+                      ) : (
+                        fmt(h.qty, 0)
+                      )}
+                    </div>
+
+                    <div className="r mono">
+                      {isEditing ? (
+                        <input
+                          defaultValue={h.price}
+                          data-field="price"
+                          className="inline-i"
+                          type="number"
+                          step="0.001"
+                        />
+                      ) : (
+                        fmt(
+                          h.price,
+                          h.type === 'fx' ? 4 : 2
                         )
-                      : '0.0';
+                      )}
+                    </div>
 
-                  const analyzedPosition =
-                    portfolioAnalytics
-                      .positions
-                      .find(
-                        p =>
-                          p.id ===
-                          h.id
-                      );
-
-                  const unrealized =
-                    analyzedPosition
-                      ?.unrealizedPnLBase ??
-                    null;
-
-                  const isEditing =
-                    editingId ===
-                    h.id;
-
-                  const tc =
-                    TYPE_CONFIG[
-                      h.type
-                    ] ||
-                    TYPE_CONFIG.stock;
-
-                  return (
-                    <div
-                      key={
-                        h.id
-                      }
-                      className={`trow ${
-                        isEditing
-                          ? 'editing'
-                          : ''
-                      }`}
-                      data-row={
-                        h.id
-                      }
-                    >
-                      <div className="td-tkr">
-                        {h.tkr}
-                      </div>
-
-                      <div>
-                        <span
-                          className="pill"
-                          style={{
-                            background:
-                              tc.bg,
-                            color:
-                              tc.fg
-                          }}
-                        >
-                          {
-                            tc.name
+                    <div className="r mono">
+                      {isEditing ? (
+                        <input
+                          defaultValue={
+                            h.purchasePrice ?? ''
                           }
-                        </span>
-                      </div>
+                          data-field="purchasePrice"
+                          className="inline-i"
+                          type="number"
+                          step="0.001"
+                          placeholder="–"
+                        />
+                      ) : h.purchasePrice ? (
+                        fmt(
+                          h.purchasePrice,
+                          h.type === 'fx' ? 4 : 2
+                        )
+                      ) : (
+                        '–'
+                      )}
+                    </div>
 
-                      <div className="r mono">
-                        {isEditing ? (
-                          <input
-                            defaultValue={
-                              h.qty
-                            }
-                            data-field="qty"
-                            className="inline-i"
-                            type="number"
-                            step="any"
-                          />
-                        ) : (
-                          fmt(
-                            h.qty,
-                            0
-                          )
-                        )}
-                      </div>
+                    <div
+                      className={`r mono ${
+                        h.chg >= 0 ? 'pos' : 'neg'
+                      }`}
+                    >
+                      {isEditing &&
+                      !autoRowDayChange ? (
+                        <input
+                          defaultValue={h.chg}
+                          data-field="chg"
+                          className="inline-i"
+                          type="number"
+                          step="0.01"
+                        />
+                      ) : (
+                        <>
+                          {h.chg >= 0 ? '+' : ''}
+                          {fmt(
+                            Math.abs(h.chg),
+                            h.type === 'fx' ? 4 : 2
+                          )}
 
-                      <div className="r mono">
-                        {isEditing ? (
-                          <input
-                            defaultValue={
-                              h.price
-                            }
-                            data-field="price"
-                            className="inline-i"
-                            type="number"
-                            step="0.001"
-                          />
-                        ) : (
-                          fmt(
-                            h.price,
-                            h.type ===
-                              'fx'
-                              ? 4
-                              : 2
-                          )
-                        )}
-                      </div>
+                          {autoRowDayChange && (
+                            <span className="auto-mark">
+                              AUTO
+                            </span>
+                          )}
+                        </>
+                      )}
+                    </div>
 
-                      <div className="r mono">
-                        {isEditing ? (
-                          <input
-                            defaultValue={
-                              h.purchasePrice ??
-                              ''
-                            }
-                            data-field="purchasePrice"
-                            className="inline-i"
-                            type="number"
-                            step="0.001"
-                            placeholder="–"
-                          />
-                        ) : h.purchasePrice ? (
-                          fmt(
-                            h.purchasePrice,
-                            h.type ===
-                              'fx'
-                              ? 4
-                              : 2
-                          )
-                        ) : (
-                          '–'
-                        )}
-                      </div>
+                    <div className="r mono mv">
+                      {fmtShort(mv)}
+                    </div>
 
-                      <div
-                        className={`r mono ${
-                          h.chg >= 0
+                    <div
+                      className={`r mono ${
+                        unrealized !== null
+                          ? unrealized >= 0
                             ? 'pos'
                             : 'neg'
-                        }`}
-                      >
-                        {isEditing ? (
-                          <input
-                            defaultValue={
-                              h.chg
-                            }
-                            data-field="chg"
-                            className="inline-i"
-                            type="number"
-                            step="0.01"
-                          />
-                        ) : (
-                          <>
-                            {h.chg >= 0
+                          : ''
+                      }`}
+                    >
+                      {unrealized !== null
+                        ? `${
+                            unrealized >= 0
                               ? '+'
-                              : ''}
-                            {fmt(
-                              Math.abs(
-                                h.chg
-                              ),
-                              h.type ===
-                                'fx'
-                                ? 4
-                                : 2
-                            )}
-                          </>
-                        )}
-                      </div>
-
-                      <div className="r mono mv">
-                        {fmtShort(
-                          mv
-                        )}
-                      </div>
-
-                      <div
-                        className={`r mono ${
-                          unrealized !==
-                          null
-                            ? unrealized >=
-                              0
-                              ? 'pos'
-                              : 'neg'
-                            : ''
-                        }`}
-                      >
-                        {unrealized !==
-                        null
-                          ? `${
-                              unrealized >=
-                              0
-                                ? '+'
-                                : '−'
-                            }${fmtShort(
-                              Math.abs(
-                                unrealized
-                              )
-                            )}`
-                          : '–'}
-                      </div>
-
-                      <div className="r mono">
-                        {wt}%
-                      </div>
-
-                      <div className="c row-actions">
-                        {isEditing ? (
-                          <>
-                            <button
-                              className="ra"
-                              onClick={() =>
-                                saveEdit(
-                                  h.id
-                                )
-                              }
-                              title="Save"
-                            >
-                              ✓
-                            </button>
-
-                            <button
-                              className="ra"
-                              onClick={() =>
-                                setEditingId(
-                                  null
-                                )
-                              }
-                              title="Cancel"
-                            >
-                              ✕
-                            </button>
-                          </>
-                        ) : (
-                          <>
-                            <button
-                              className="ra"
-                              onClick={() =>
-                                setEditingId(
-                                  h.id
-                                )
-                              }
-                              title="Edit"
-                            >
-                              ✎
-                            </button>
-
-                            <button
-                              className="ra del"
-                              onClick={() =>
-                                deletePosition(
-                                  h.id
-                                )
-                              }
-                              title="Delete"
-                            >
-                              ✕
-                            </button>
-                          </>
-                        )}
-                      </div>
+                              : '−'
+                          }${fmtShort(
+                            Math.abs(unrealized)
+                          )}`
+                        : '–'}
                     </div>
-                  );
-                }
-              )}
+
+                    <div className="r mono">
+                      {wt}%
+                    </div>
+
+                    <div className="c row-actions">
+                      {isEditing ? (
+                        <>
+                          <button
+                            className="ra"
+                            onClick={() =>
+                              saveEdit(h.id)
+                            }
+                            title="Save"
+                          >
+                            ✓
+                          </button>
+
+                          <button
+                            className="ra"
+                            onClick={() =>
+                              setEditingId(null)
+                            }
+                            title="Cancel"
+                          >
+                            ✕
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          <button
+                            className="ra"
+                            onClick={() =>
+                              setEditingId(h.id)
+                            }
+                            title="Edit"
+                          >
+                            ✎
+                          </button>
+
+                          <button
+                            className="ra del"
+                            onClick={() =>
+                              deletePosition(h.id)
+                            }
+                            title="Delete"
+                          >
+                            ✕
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
 
               <div className="tfoot">
-                <div>
-                  Totals
-                </div>
-
+                <div>Totals</div>
                 <div />
-
                 <div />
-
                 <div />
-
                 <div />
-
                 <div />
 
                 <div className="r mono">
-                  <b>
-                    {fmtShort(
-                      total
-                    )}
-                  </b>
+                  <b>{fmtShort(total)}</b>
                 </div>
 
                 <div
                   className={`r mono ${
                     hasCostBasis &&
-                    unrealizedPL !==
-                      null
-                      ? unrealizedPL >=
-                        0
+                    unrealizedPL !== null
+                      ? unrealizedPL >= 0
                         ? 'pos'
                         : 'neg'
                       : ''
@@ -2568,26 +1930,20 @@ export default function Portfolio() {
                 >
                   <b>
                     {hasCostBasis &&
-                    unrealizedPL !==
-                      null
+                    unrealizedPL !== null
                       ? `${
-                          unrealizedPL >=
-                          0
+                          unrealizedPL >= 0
                             ? '+'
                             : '−'
                         }${fmtShort(
-                          Math.abs(
-                            unrealizedPL
-                          )
+                          Math.abs(unrealizedPL)
                         )}`
                       : '–'}
                   </b>
                 </div>
 
                 <div className="r mono">
-                  <b>
-                    100.0%
-                  </b>
+                  <b>100.0%</b>
                 </div>
 
                 <div />
@@ -2601,10 +1957,7 @@ export default function Portfolio() {
         <div className="ft-inner">
           <div>
             © 2026 Yield Calculator ·{' '}
-            <Link href="/">
-              Home
-            </Link>{' '}
-            ·{' '}
+            <Link href="/">Home</Link> ·{' '}
             <a href="mailto:hello@yieldcalculator.tech">
               Contact
             </a>
@@ -2865,18 +2218,19 @@ export default function Portfolio() {
 
         .add-row {
           display: grid;
-         .add-row {
-  display: grid;
-  grid-template-columns: 1.25fr 0.85fr 0.9fr 0.9fr 0.9fr 0.8fr;
-  gap: 10px;
-  align-items: end;
-}
+          grid-template-columns:
+            1.25fr
+            0.85fr
+            0.9fr
+            0.9fr
+            0.9fr
+            0.8fr;
+          gap: 10px;
+          align-items: start;
+        }
 
-.add-row .field {
-  min-width: 0;
-}
-          gap: 14px;
-          align-items: end;
+        .add-row .field {
+          min-width: 0;
         }
 
         .field {
@@ -2896,6 +2250,8 @@ export default function Portfolio() {
 
         .field input,
         .field select {
+          width: 100%;
+          box-sizing: border-box;
           padding: 10px 12px;
           background: var(--bg);
           border: 1.5px solid var(--border2);
@@ -2910,6 +2266,21 @@ export default function Portfolio() {
         .field select:focus {
           border-color: var(--blue);
           background: var(--surface);
+        }
+
+        .field input:disabled {
+          background: var(--paper-3);
+          color: var(--ink-3);
+          cursor: not-allowed;
+          opacity: 0.8;
+        }
+
+        .field-note {
+          font-family: var(--sans);
+          font-size: 9.5px;
+          color: var(--ink-3);
+          font-style: italic;
+          min-height: 12px;
         }
 
         .add-actions {
@@ -3065,6 +2436,17 @@ export default function Portfolio() {
           font-size: 11.5px;
           color: var(--ink-3);
           padding-left: 17px;
+        }
+
+        .auto-mark {
+          display: inline-block;
+          margin-left: 6px;
+          font-family: var(--sans);
+          font-size: 8px;
+          font-weight: 700;
+          letter-spacing: .08em;
+          color: var(--ink-3);
+          opacity: 0.7;
         }
 
         .empty {
@@ -3230,6 +2612,7 @@ export default function Portfolio() {
           text-align: right;
           outline: none;
           color: var(--ink);
+          box-sizing: border-box;
         }
 
         .ft {
