@@ -746,15 +746,17 @@ const hasCostBasis =
           ) : (
             <div className="table">
               <div className="thead">
-                <div>Ticker</div>
-                <div>Type</div>
-                <div className="r">Quantity</div>
-                <div className="r">Price</div>
-                <div className="r">Day Chg</div>
-                <div className="r">Market Value</div>
-                <div className="r">Weight</div>
-                <div className="c">·</div>
-              </div>
+  <div>Ticker</div>
+  <div>Type</div>
+  <div className="r">Quantity</div>
+  <div className="r">Price</div>
+  <div className="r">Purchase Price</div>
+  <div className="r">Day Chg</div>
+  <div className="r">Market Value</div>
+  <div className="r">Unrealized P&amp;L</div>
+  <div className="r">Weight</div>
+  <div className="c">·</div>
+</div>
               {holdings.map(h => {
                 const mv = calcMV(h);
                 const wt = ((mv / total) * 100).toFixed(1);
