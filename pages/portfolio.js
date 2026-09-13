@@ -758,10 +758,19 @@ const hasCostBasis =
   <div className="c">·</div>
 </div>
               {holdings.map(h => {
-                const mv = calcMV(h);
-                const wt = ((mv / total) * 100).toFixed(1);
-                const isEditing = editingId === h.id;
-                const tc = TYPE_CONFIG[h.type] || TYPE_CONFIG.stock;
+               const mv = calcMV(h);
+const wt = ((mv / total) * 100).toFixed(1);
+
+const analyzedPosition =
+  portfolioAnalytics.positions.find(
+    p => p.id === h.id
+  );
+
+const unrealized =
+  analyzedPosition?.unrealizedPnLBase ?? null;
+
+const isEditing = editingId === h.id;
+const tc = TYPE_CONFIG[h.type] || TYPE_CONFIG.stock;
                 return (
                   <div key={h.id} className={`trow ${isEditing ? 'editing' : ''}`} data-row={h.id}>
                     <div className="td-tkr">{h.tkr}</div>
