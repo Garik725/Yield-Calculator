@@ -5,6 +5,7 @@
 import Head from 'next/head';
 import Link from 'next/link';
 import { useState, useEffect, useRef } from 'react';
+
 import {
   calcMarketValue as calcMV,
   calcPreviousMarketValue as calcMVPrev
