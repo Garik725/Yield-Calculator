@@ -621,39 +621,98 @@ const hasCostBasis =
           </section>
 
           {/* KPIs */}
-          {holdings.length > 0 && (
-            <div className="kpis">
-              <div className="kpi feat">
-                <div className="kpi-l">Total Portfolio Value</div>
-                <div className="kpi-v">{fmtShort(total)}</div>
-                <div className={`kpi-c ${dayPL >= 0 ? 'pos' : 'neg'}`}>
-                  {dayPL >= 0 ? '▲' : '▼'} {fmt(Math.abs(dayPct), 2)}% today
-                  <span className="kpi-c-sub">({dayPL >= 0 ? '+' : '−'}{fmtShort(Math.abs(dayPL))})</span>
-                </div>
-              </div>
-              <div className="kpi">
-                <div className="kpi-l">Today's P&amp;L</div>
-                <div className={`kpi-v ${dayPL >= 0 ? 'pos' : 'neg'}`}>
-                  {dayPL >= 0 ? '+' : '−'}{fmtShort(Math.abs(dayPL))}
-                </div>
-                <div className="kpi-s">Unrealized</div>
-              </div>
-              <div className="kpi">
-                <div className="kpi-l">Positions</div>
-                <div className="kpi-v">{holdings.length}</div>
-                <div className="kpi-s">
-                  {Object.entries(byType).filter(([_, v]) => v > 0).map(([t]) => TYPE_CONFIG[t].name).join(' · ')}
-                </div>
-              </div>
-              <div className="kpi">
-                <div className="kpi-l">Top Holding</div>
-                <div className="kpi-v top">{topHolding?.tkr || '–'}</div>
-                <div className="kpi-s">
-                  {topHolding ? `${fmtShort(calcMV(topHolding))} (${((calcMV(topHolding) / total) * 100).toFixed(1)}%)` : '–'}
-                </div>
-              </div>
-            </div>
-          )}
+{holdings.length > 0 && (
+  <div className="kpis">
+
+    <div className="kpi feat">
+      <div className="kpi-l">Total Portfolio Value</div>
+
+      <div className="kpi-v">
+        {fmtShort(total)}
+      </div>
+
+      <div className={`kpi-c ${dayPL >= 0 ? 'pos' : 'neg'}`}>
+        {dayPL >= 0 ? '▲' : '▼'} {fmt(Math.abs(dayPct), 2)}% today
+
+        <span className="kpi-c-sub">
+          ({dayPL >= 0 ? '+' : '−'}
+          {fmtShort(Math.abs(dayPL))})
+        </span>
+      </div>
+    </div>
+
+    <div className="kpi">
+      <div className="kpi-l">Unrealized P&amp;L</div>
+
+      <div
+        className={`kpi-v ${
+          hasCostBasis
+            ? unrealizedPL >= 0
+              ? 'pos'
+              : 'neg'
+            : ''
+        }`}
+      >
+        {hasCostBasis && unrealizedPL !== null
+          ? `${unrealizedPL >= 0 ? '+' : '−'}${fmtShort(
+              Math.abs(unrealizedPL)
+            )}`
+          : '–'}
+      </div>
+
+      <div className="kpi-s">
+        {hasCostBasis && totalCostBasis !== null
+          ? `Cost basis: ${fmtShort(totalCostBasis)}`
+          : 'Add purchase price to all positions'}
+      </div>
+    </div>
+
+    <div className="kpi">
+      <div className="kpi-l">Total Return</div>
+
+      <div
+        className={`kpi-v ${
+          totalReturnPct !== null
+            ? totalReturnPct >= 0
+              ? 'pos'
+              : 'neg'
+            : ''
+        }`}
+      >
+        {totalReturnPct !== null
+          ? `${totalReturnPct >= 0 ? '+' : ''}${fmt(
+              totalReturnPct,
+              2
+            )}%`
+          : '–'}
+      </div>
+
+      <div className="kpi-s">
+        Since purchase
+      </div>
+    </div>
+
+    <div className="kpi">
+      <div className="kpi-l">Top Holding</div>
+
+      <div className="kpi-v top">
+        {topHolding?.tkr || '–'}
+      </div>
+
+      <div className="kpi-s">
+        {topHolding
+          ? `${fmtShort(calcMV(topHolding))} (${(
+              (calcMV(topHolding) / total) *
+              100
+            ).toFixed(1)}%)`
+          : '–'}
+      </div>
+    </div>
+
+  </div>
+)}
+
+{/* DATA STATUS BANNER */}
 
           {/* DATA STATUS BANNER */}
           {holdings.length > 0 && holdings.some(h => h.type === 'stock' || h.type === 'etf') && (
