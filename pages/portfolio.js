@@ -953,7 +953,14 @@ const tc = TYPE_CONFIG[h.type] || TYPE_CONFIG.stock;
 
         /* ── TABLE ── */
         .table { background: var(--paper-2); border: 1px solid var(--rule); overflow-x: auto; }
-        .thead, .trow, .tfoot { display: grid; grid-template-columns: 1fr 0.8fr 1fr 1fr 1fr 1fr 0.7fr 0.8fr; padding: 13px 22px; border-bottom: 1px solid var(--rule); align-items: center; min-width: 880px; }
+        .thead, .trow, .tfoot {
+  display: grid;
+  grid-template-columns: 1fr 0.8fr 1fr 1fr 1fr 1fr 1fr 1fr 0.7fr 0.8fr;
+  padding: 13px 22px;
+  border-bottom: 1px solid var(--rule);
+  align-items: center;
+  min-width: 1150px;
+}
         .trow:last-of-type { border-bottom: none; }
         .thead { font-family: var(--sans); font-size: 10.5px; letter-spacing: .14em; text-transform: uppercase; color: var(--ink-3); font-weight: 600; background: var(--paper-3); border-bottom: 2px solid var(--ink); padding-top: 14px; padding-bottom: 14px; }
         .trow { font-size: 13.5px; transition: background .15s; }
