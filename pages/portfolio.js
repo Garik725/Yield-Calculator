@@ -100,22 +100,37 @@ const [form, setForm] = useState({
   const [lastRefreshed, setLastRefreshed] = useState(null);
 
   const addPosition = () => {
-    const tkr = form.tkr.trim().toUpperCase();
-    const qty = parseFloat(form.qty);
-    const price = parseFloat(form.price);
-    const chg = parseFloat(form.chg) || 0;
+  const tkr = form.tkr.trim().toUpperCase();
+  const qty = parseFloat(form.qty);
+  const price = parseFloat(form.price);
+  const purchasePrice = parseFloat(form.purchasePrice);
+  const chg = parseFloat(form.chg) || 0;
 
-    if (!tkr || isNaN(qty) || qty <= 0 || isNaN(price) || price <= 0) {
-      showToast('Please fill ticker, quantity and price');
-      return;
-    }
+  if (!tkr || isNaN(qty) || qty <= 0 || isNaN(price) || price <= 0) {
+    showToast('Please fill ticker, quantity and price');
+    return;
+  }
 
-    const newPos = {
-      id: 'p' + Date.now() + Math.floor(Math.random() * 1000),
-      tkr, type: form.type, qty, price, chg,
-    };
-    setHoldings([...holdings, newPos]);
-    setForm({ tkr: '', type: form.type, qty: '', price: '', chg: '0' });
+  const newPos = {
+    id: 'p' + Date.now() + Math.floor(Math.random() * 1000),
+    tkr,
+    type: form.type,
+    qty,
+    price,
+    purchasePrice: !isNaN(purchasePrice) && purchasePrice > 0 ? purchasePrice : null,
+    chg,
+  };
+
+  setHoldings([...holdings, newPos]);
+
+  setForm({
+    tkr: '',
+    type: form.type,
+    qty: '',
+    price: '',
+    purchasePrice: '',
+    chg: '0'
+  });
     setLookupStatus('');
     showToast(`Added ${tkr}`);
   };
