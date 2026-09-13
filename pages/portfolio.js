@@ -46,7 +46,14 @@ const fmtShort = n => {
 export default function Portfolio() {
   const [holdings, setHoldings] = useState([]);
   const [editingId, setEditingId] = useState(null);
-  const [form, setForm] = useState({ tkr: '', type: 'stock', qty: '', price: '', chg: '0' });
+const [form, setForm] = useState({
+  tkr: '',
+  type: 'stock',
+  qty: '',
+  price: '',
+  purchasePrice: '',
+  chg: ''
+});
   const [toast, setToast] = useState('');
   const importRef = useRef(null);
 
