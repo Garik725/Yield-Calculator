@@ -8,7 +8,8 @@ import { useState, useEffect, useRef } from 'react';
 
 import {
   calcMarketValue as calcMV,
-  calcPreviousMarketValue as calcMVPrev
+  calcPreviousMarketValue as calcMVPrev,
+  analyzePortfolioValuation
 } from '../lib/portfolio/valuation';
 
 const STORAGE_KEY = 'yc.portfolio.v1';
@@ -400,17 +401,47 @@ export default function Portfolio() {
       event.target.value = '';
     }
   };
+const portfolioAnalytics = analyzePortfolioValuation(
+  holdings,
+  {
+    baseCurrency: 'USD',
+    useDirtyBondValue: true
+  }
+);
 
-  const total = holdings.reduce((s, h) => s + calcMV(h), 0);
-  const totalPrev = holdings.reduce((s, h) => s + calcMVPrev(h), 0);
-  const dayPL = total - totalPrev;
-  const dayPct = totalPrev > 0 ? (dayPL / totalPrev) * 100 : 0;
-  const byType = holdings.reduce((acc, h) => {
-    acc[h.type] = (acc[h.type] || 0) + calcMV(h);
-    return acc;
-  }, {});
-  const topHolding = holdings.length ? [...holdings].sort((a, b) => calcMV(b) - calcMV(a))[0] : null;
+const total =
+  portfolioAnalytics.valuation.totalValue;
 
+const totalPrev =
+  portfolioAnalytics.valuation.totalPreviousValue ?? 0;
+
+const dayPL =
+  portfolioAnalytics.valuation.dayPnL ?? 0;
+
+const dayPct =
+  portfolioAnalytics.valuation.dayReturn !== null
+    ? portfolioAnalytics.valuation.dayReturn * 100
+    : 0;
+
+const byType =
+  Object.fromEntries(
+    Object.entries(
+      portfolioAnalytics.allocations.byAssetClass
+    ).map(([type, data]) => [
+      type,
+      data.value
+    ])
+  );
+
+const topHolding =
+  portfolioAnalytics.concentration.largestHolding
+    ? holdings.find(
+        h =>
+          (h.symbol || h.tkr) ===
+          portfolioAnalytics.concentration.largestHolding.symbol
+      )
+    : null;
+  
   return (
     <>
       <Head>
