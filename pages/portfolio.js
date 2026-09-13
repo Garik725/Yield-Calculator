@@ -32,8 +32,6 @@ const DEMO_PORTFOLIO = [
   { id: 'd10', tkr: 'JPM28',   type: 'bond',  qty: 150000,  price: 101.25,  chg:  0.05 },
 ];
 
-const calcMV = h => h.type === 'bond' ? h.qty * h.price / 100 : h.qty * h.price;
-const calcMVPrev = h => h.type === 'bond' ? h.qty * (h.price - h.chg) / 100 : h.qty * (h.price - h.chg);
 
 const fmt = (n, dp = 2) => Number(n).toLocaleString('en-US', { minimumFractionDigits: dp, maximumFractionDigits: dp });
 const fmtShort = n => {
