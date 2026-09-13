@@ -463,7 +463,20 @@ const topHolding =
           portfolioAnalytics.concentration.largestHolding.symbol
       )
     : null;
-  
+  const totalCostBasis =
+  portfolioAnalytics.valuation.totalCostBasis;
+
+const unrealizedPL =
+  portfolioAnalytics.valuation.unrealizedPnL;
+
+const totalReturnPct =
+  portfolioAnalytics.valuation.unrealizedReturn !== null
+    ? portfolioAnalytics.valuation.unrealizedReturn * 100
+    : null;
+
+const hasCostBasis =
+  portfolioAnalytics.dataQuality.completeCostBasis;
+
   return (
     <>
       <Head>
