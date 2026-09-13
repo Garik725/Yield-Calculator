@@ -787,11 +787,19 @@ const tc = TYPE_CONFIG[h.type] || TYPE_CONFIG.stock;
                         ? <input defaultValue={h.price} data-field="price" className="inline-i" type="number" step="0.001" />
                         : fmt(h.price, h.type === 'fx' ? 4 : 2)}
                     </div>
-                    <div className={`r mono ${h.chg >= 0 ? 'pos' : 'neg'}`}>
-                      {isEditing
-                        ? <input defaultValue={h.chg} data-field="chg" className="inline-i" type="number" step="0.01" />
-                        : <>{h.chg >= 0 ? '+' : ''}{fmt(Math.abs(h.chg), h.type === 'fx' ? 4 : 2)}</>}
-                    </div>
+                   <div className="r mono">
+  {isEditing
+    ? <input defaultValue={h.price} data-field="price" className="inline-i" type="number" step="0.001" />
+    : fmt(h.price, h.type === 'fx' ? 4 : 2)}
+</div>
+
+<div className="r mono">
+  {h.purchasePrice
+    ? fmt(h.purchasePrice, h.type === 'fx' ? 4 : 2)
+    : '–'}
+</div>
+
+<div className={`r mono ${h.chg >= 0 ? 'pos' : 'neg'}`}>
                     <div className="r mono mv">{fmtShort(mv)}</div>
                     <div className="r mono">{wt}%</div>
                     <div className="c row-actions">
