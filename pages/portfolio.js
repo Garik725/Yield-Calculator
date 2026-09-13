@@ -2865,7 +2865,16 @@ export default function Portfolio() {
 
         .add-row {
           display: grid;
-          grid-template-columns: 1.4fr 1fr 1fr 1fr 1fr 0.9fr;
+         .add-row {
+  display: grid;
+  grid-template-columns: 1.25fr 0.85fr 0.9fr 0.9fr 0.9fr 0.8fr;
+  gap: 10px;
+  align-items: end;
+}
+
+.add-row .field {
+  min-width: 0;
+}
           gap: 14px;
           align-items: end;
         }
