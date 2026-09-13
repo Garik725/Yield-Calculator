@@ -559,14 +559,45 @@ const topHolding =
                 <label>Quantity</label>
                 <input type="number" value={form.qty} placeholder="100" step="any" onChange={e => setForm({ ...form, qty: e.target.value })} onKeyDown={e => e.key === 'Enter' && addPosition()} />
               </div>
-              <div className="field">
-                <label>Price</label>
-                <input type="number" value={form.price} placeholder="195.50" step="0.001" onChange={e => setForm({ ...form, price: e.target.value })} onKeyDown={e => e.key === 'Enter' && addPosition()} />
-              </div>
-              <div className="field">
-                <label>Day Chg</label>
-                <input type="number" value={form.chg} step="0.01" onChange={e => setForm({ ...form, chg: e.target.value })} onKeyDown={e => e.key === 'Enter' && addPosition()} />
-              </div>
+<div className="field">
+  <label>Price</label>
+  <input
+    type="number"
+    value={form.price}
+    placeholder="195.50"
+    step="0.001"
+    onChange={e => setForm({ ...form, price: e.target.value })}
+    onKeyDown={e => e.key === 'Enter' && addPosition()}
+  />
+</div>
+
+<div className="field">
+  <label>Purchase Price</label>
+  <input
+    type="number"
+    value={form.purchasePrice}
+    placeholder="170.00"
+    step="0.001"
+    onChange={e =>
+      setForm({
+        ...form,
+        purchasePrice: e.target.value
+      })
+    }
+    onKeyDown={e => e.key === 'Enter' && addPosition()}
+  />
+</div>
+
+<div className="field">
+  <label>Day Chg</label>
+  <input
+    type="number"
+    value={form.chg}
+    step="0.01"
+    onChange={e => setForm({ ...form, chg: e.target.value })}
+    onKeyDown={e => e.key === 'Enter' && addPosition()}
+  />
+</div>
             </div>
             <div className="add-actions">
               <p className="add-hint">
