@@ -1,4 +1,5 @@
-// pages/portfolio.js
+
+ // pages/portfolio.js
 // Module 03 · The Book · refined portfolio with localStorage
 
 import Head from 'next/head';
@@ -60,6 +61,7 @@ export default function Portfolio() {
     qty: '',
     price: '',
     purchasePrice: '',
+    modifiedDuration: '',
     chg: '0'
   });
 
@@ -134,6 +136,14 @@ export default function Portfolio() {
     const qty = parseFloat(form.qty);
     const price = parseFloat(form.price);
     const purchasePrice = parseFloat(form.purchasePrice);
+    const durationText = String(form.modifiedDuration ?? '').trim();
+    const modifiedDuration = durationText === '' ? null : Number(durationText);
+
+    if (form.type === 'bond' && modifiedDuration !== null &&
+        (!Number.isFinite(modifiedDuration) || modifiedDuration < 0)) {
+      showToast('Modified duration must be zero or positive');
+      return;
+    }
 
     const chg =
       form.type === 'stock' || form.type === 'etf'
@@ -161,6 +171,7 @@ export default function Portfolio() {
         !isNaN(purchasePrice) && purchasePrice > 0
           ? purchasePrice
           : null,
+      modifiedDuration: form.type === 'bond' ? modifiedDuration : null,
       chg,
     };
 
@@ -172,6 +183,7 @@ export default function Portfolio() {
       qty: '',
       price: '',
       purchasePrice: '',
+      modifiedDuration: '',
       chg: '0'
     });
 
@@ -319,6 +331,15 @@ export default function Portfolio() {
     if (!row) return;
 
     const oldHolding = holdings.find(h => h.id === id);
+    const durationInput = row.querySelector('[data-field="modifiedDuration"]');
+    const durationText = durationInput ? durationInput.value.trim() : '';
+    const modifiedDuration = durationText === '' ? null : Number(durationText);
+
+    if (oldHolding?.type === 'bond' && modifiedDuration !== null &&
+        (!Number.isFinite(modifiedDuration) || modifiedDuration < 0)) {
+      showToast('Invalid modified duration');
+      return;
+    }
 
     const qty = parseFloat(
       row.querySelector('[data-field="qty"]').value
@@ -363,6 +384,7 @@ export default function Portfolio() {
                 !isNaN(purchasePrice) && purchasePrice > 0
                   ? purchasePrice
                   : null,
+              modifiedDuration: h.type === 'bond' ? modifiedDuration : null,
               chg,
             }
           : h
@@ -676,7 +698,6 @@ export default function Portfolio() {
         doc.setFont('helvetica', 'normal');
         doc.setFontSize(9);
         doc.setTextColor(107, 103, 96);
-
         doc.text(
           TYPE_CONFIG[h.type]?.name || h.type,
           colType,
@@ -1005,6 +1026,16 @@ export default function Portfolio() {
             purchasePrice:
               parseFloat(p.purchasePrice) > 0
                 ? parseFloat(p.purchasePrice)
+                : null,
+
+            modifiedDuration:
+              p.type === 'bond' &&
+              p.modifiedDuration !== null &&
+              p.modifiedDuration !== undefined &&
+              p.modifiedDuration !== '' &&
+              Number.isFinite(Number(p.modifiedDuration)) &&
+              Number(p.modifiedDuration) >= 0
+                ? Number(p.modifiedDuration)
                 : null,
 
             chg:
@@ -1367,7 +1398,6 @@ export default function Portfolio() {
                   <option value="etf">
                     ETF
                   </option>
-
                   <option value="fx">
                     FX / Cash
                   </option>
@@ -1442,6 +1472,27 @@ export default function Portfolio() {
                   }
                 />
               </div>
+
+              {form.type === 'bond' && (
+                <div className="field">
+                  <label>Modified Duration (years)</label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={form.modifiedDuration}
+                    placeholder="e.g. 7.50"
+                    onChange={e => setForm(prev => ({
+                      ...prev,
+                      modifiedDuration: e.target.value
+                    }))}
+                    onKeyDown={e => e.key === 'Enter' && addPosition()}
+                  />
+                  <span className="field-note">
+                    Optional · enter verified duration
+                  </span>
+                </div>
+              )}
 
               <div className="field">
                 <label>
@@ -1731,6 +1782,34 @@ export default function Portfolio() {
                   >
                     <div className="td-tkr">
                       {h.tkr}
+
+                      {h.type === 'bond' && isEditing && (
+                        <div style={{ marginTop: 8 }}>
+                          <label style={{ display: 'block', fontSize: 10, color: '#77736d', marginBottom: 4 }}>
+                            Modified duration
+                          </label>
+                          <input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            defaultValue={h.modifiedDuration ?? ''}
+                            data-field="modifiedDuration"
+                            className="inline-i"
+                            placeholder="e.g. 7.50"
+                            style={{ width: 95 }}
+                          />
+                        </div>
+                      )}
+
+                      {h.type === 'bond' && !isEditing &&
+                        h.modifiedDuration !== null &&
+                        h.modifiedDuration !== undefined &&
+                        h.modifiedDuration !== '' &&
+                        Number.isFinite(Number(h.modifiedDuration)) && (
+                          <div style={{ marginTop: 5, fontSize: 10, color: '#77736d' }}>
+                            Dmod: {Number(h.modifiedDuration).toFixed(2)}y
+                          </div>
+                        )}
                     </div>
 
                     <div>
@@ -1918,6 +1997,7 @@ export default function Portfolio() {
 
                 <div className="r mono">
                   <b>{fmtShort(total)}</b>
+
                 </div>
 
                 <div
@@ -1949,18 +2029,17 @@ export default function Portfolio() {
                 </div>
 
                 <div />
-                       </div>
+              </div>
             </div>
           )}
 
           {holdings.length > 0 && (
             <PortfolioRiskPanel holdings={holdings} />
           )}
-            
-{holdings.length > 0 && (
-  <PortfolioScenarioPanel holdings={holdings} />
-)}
 
+          {holdings.length > 0 && (
+            <PortfolioScenarioPanel holdings={holdings} />
+          )}
         </div>
       </main>
 
