@@ -10,6 +10,7 @@ import {
   calcPreviousMarketValue as calcMVPrev,
   analyzePortfolioValuation
 } from '../lib/portfolio/valuation';
+import PortfolioRiskPanel from '../components/PortfolioRiskPanel';
 
 const STORAGE_KEY = 'yc.portfolio.v1';
 
