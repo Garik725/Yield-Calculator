@@ -1045,6 +1045,7 @@ export default function Portfolio() {
                 ? parseFloat(p.purchasePrice)
                 : null,
 
+           
             modifiedDuration:
               p.type === 'bond' &&
               p.modifiedDuration !== null &&
@@ -1055,6 +1056,74 @@ export default function Portfolio() {
                 ? Number(p.modifiedDuration)
                 : null,
 
+            bondTerms:
+              p.type === 'bond' &&
+              p.bondTerms &&
+              typeof p.bondTerms === 'object' &&
+              !Array.isArray(p.bondTerms)
+                ? {
+                    coupon: p.bondTerms.coupon,
+                    maturity: p.bondTerms.maturity,
+                    freq: p.bondTerms.freq,
+                    dc: p.bondTerms.dc
+                  }
+                : null,
+
+            settlementDate:
+              p.type === 'bond'
+                ? p.settlementDate || null
+                : null,
+
+            ytm:
+              p.type === 'bond' &&
+              p.ytm !== null &&
+              p.ytm !== undefined &&
+              Number.isFinite(Number(p.ytm))
+                ? Number(p.ytm)
+                : null,
+
+            dv01:
+              p.type === 'bond' &&
+              p.dv01 !== null &&
+              p.dv01 !== undefined &&
+              Number.isFinite(Number(p.dv01))
+                ? Number(p.dv01)
+                : null,
+
+            dirtyPrice:
+              p.type === 'bond' &&
+              p.dirtyPrice !== null &&
+              p.dirtyPrice !== undefined &&
+              Number.isFinite(Number(p.dirtyPrice)) &&
+              Number(p.dirtyPrice) > 0
+                ? Number(p.dirtyPrice)
+                : null,
+
+            accruedInterestPer100:
+              p.type === 'bond' &&
+              p.accruedInterestPer100 !== null &&
+              p.accruedInterestPer100 !== undefined &&
+              Number.isFinite(Number(p.accruedInterestPer100))
+                ? Number(p.accruedInterestPer100)
+                : null,
+
+            analyticsSource:
+              p.type === 'bond'
+                ? p.analyticsSource || null
+                : null,
+
+            analyticsAsOf:
+              p.type === 'bond'
+                ? p.analyticsAsOf || null
+                : null,
+
+            analyticsPrice:
+              p.type === 'bond' &&
+              p.analyticsPrice !== null &&
+              p.analyticsPrice !== undefined &&
+              Number.isFinite(Number(p.analyticsPrice))
+                ? Number(p.analyticsPrice)
+                : null,
             chg:
               parseFloat(p.chg) || 0,
           }))
