@@ -11,6 +11,7 @@ import {
   analyzePortfolioValuation
 } from '../lib/portfolio/valuation';
 import PortfolioRiskPanel from '../components/PortfolioRiskPanel';
+import PortfolioScenarioPanel from '../components/PortfolioScenarioPanel';
 
 const STORAGE_KEY = 'yc.portfolio.v1';
 
