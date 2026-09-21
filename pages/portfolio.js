@@ -2057,6 +2057,13 @@ export default function Portfolio() {
           {holdings.length > 0 && (
             <PortfolioScenarioPanel holdings={holdings} />
           )}
+           
+{holdings.length > 0 && (
+  <BondAnalyticsPanel
+    holdings={holdings}
+    onUpdateHolding={updateBondAnalytics}
+  />
+)}
         </div>
       </main>
 
