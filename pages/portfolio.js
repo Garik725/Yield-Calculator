@@ -392,8 +392,24 @@ export default function Portfolio() {
       )
     );
 
+    
     setEditingId(null);
     showToast('Position updated');
+  };
+
+  const updateBondAnalytics = (id, analytics) => {
+    setHoldings(previous =>
+      previous.map(holding =>
+        holding.id === id && holding.type === 'bond'
+          ? {
+              ...holding,
+              ...analytics
+            }
+          : holding
+      )
+    );
+
+    showToast('Bond analytics updated');
   };
 
   const loadDemo = () => {
