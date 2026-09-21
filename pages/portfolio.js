@@ -13,6 +13,7 @@ import {
 } from '../lib/portfolio/valuation';
 import PortfolioRiskPanel from '../components/PortfolioRiskPanel';
 import PortfolioScenarioPanel from '../components/PortfolioScenarioPanel';
+import BondAnalyticsPanel from '../components/BondAnalyticsPanel';
 
 const STORAGE_KEY = 'yc.portfolio.v1';
 
