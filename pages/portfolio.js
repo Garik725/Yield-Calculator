@@ -1956,6 +1956,10 @@ export default function Portfolio() {
           {holdings.length > 0 && (
             <PortfolioRiskPanel holdings={holdings} />
           )}
+            
+{holdings.length > 0 && (
+  <PortfolioScenarioPanel holdings={holdings} />
+)}
 
         </div>
       </main>
