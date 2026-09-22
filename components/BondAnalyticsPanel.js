@@ -243,11 +243,27 @@ export default function BondAnalyticsPanel({
                 onChange={e => selectBond(e.target.value)}
               >
                 <option value="">Choose a holding</option>
+                
                 {bonds.map(bond => (
                   <option key={bond.id} value={String(bond.id)}>
                     {bond.tkr} · {money(Number(bond.qty) * Number(bond.price) / 100)}
                   </option>
                 ))}
+              </select>
+            </label>
+
+            <label>
+              <span>Bond category</span>
+
+              <select
+                value={form.bondCategory}
+                onChange={e =>
+                  updateField('bondCategory', e.target.value)
+                }
+              >
+                <option value="">Select category</option>
+                <option value="government">Government</option>
+                <option value="corporate">Corporate</option>
               </select>
             </label>
 
