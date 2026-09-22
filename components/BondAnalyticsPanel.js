@@ -68,7 +68,9 @@ export default function BondAnalyticsPanel({
 
     const terms = bond.bondTerms || {};
 
+    
     setForm({
+      bondCategory: bond.bondCategory || '',
       coupon:
         terms.coupon !== undefined && terms.coupon !== null
           ? String(terms.coupon)
@@ -78,7 +80,6 @@ export default function BondAnalyticsPanel({
       dc: terms.dc || 'ACT/ACT',
       settlement: bond.settlementDate || todayUTC()
     });
-  };
 
   const updateField = (key, value) => {
     setForm(previous => ({
