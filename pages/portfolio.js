@@ -54,6 +54,8 @@ const fmtShort = n => {
 
 export default function Portfolio() {
   const [holdings, setHoldings] = useState([]);
+  const [storageReady, setStorageReady] = useState(false);
+  const [storageError, setStorageError] = useState('');
   const [editingId, setEditingId] = useState(null);
 
   const [form, setForm] = useState({
@@ -84,16 +86,21 @@ export default function Portfolio() {
       if (raw) {
         const data = JSON.parse(raw);
 
-        if (data && Array.isArray(data.positions)) {
-          setHoldings(data.positions);
+        if (!data || !Array.isArray(data.positions)) {
+          throw new Error('Saved portfolio has an invalid format');
         }
+        setHoldings(data.positions);
       }
     } catch (e) {
-      // ignore
+      console.error('Failed to restore portfolio:', e);
+      setStorageError('Could not read the saved portfolio. Changes are disabled to protect your existing data.');
+    } finally {
+      setStorageReady(true);
     }
   }, []);
 
   useEffect(() => {
+    if (!storageReady || storageError) return;
     if (didInitialRefresh) return;
     if (holdings.length === 0) return;
 
@@ -111,9 +118,10 @@ export default function Portfolio() {
     return () => clearTimeout(timer);
 
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [holdings.length, didInitialRefresh]);
+  }, [holdings.length, didInitialRefresh, storageReady, storageError]);
 
   useEffect(() => {
+    if (!storageReady || storageError) return;
     try {
       localStorage.setItem(
         STORAGE_KEY,
@@ -123,9 +131,10 @@ export default function Portfolio() {
         })
       );
     } catch (e) {
-      // ignore
+      console.error('Failed to save portfolio:', e);
+      setStorageError('Saving failed. Export your holdings before making further changes.');
     }
-  }, [holdings]);
+  }, [holdings, storageReady, storageError]);
 
   const showToast = msg => {
     setToast(msg);
@@ -133,6 +142,7 @@ export default function Portfolio() {
   };
 
   const addPosition = () => {
+    if (!storageReady || storageError) return;
     const tkr = form.tkr.trim().toUpperCase();
     const qty = parseFloat(form.qty);
     const price = parseFloat(form.price);
@@ -232,6 +242,7 @@ export default function Portfolio() {
   };
 
   const refreshAllPrices = async (silent = false) => {
+    if (!storageReady || storageError) return;
     const refreshable = holdings.filter(
       h => h.type === 'stock' || h.type === 'etf'
     );
@@ -311,6 +322,7 @@ export default function Portfolio() {
   };
 
   const deletePosition = id => {
+    if (!storageReady || storageError) return;
     const h = holdings.find(x => x.id === id);
 
     if (!h) return;
@@ -325,6 +337,7 @@ export default function Portfolio() {
   };
 
   const saveEdit = id => {
+    if (!storageReady || storageError) return;
     const row = document.querySelector(
       `[data-row="${id}"]`
     );
@@ -374,96 +387,53 @@ export default function Portfolio() {
       return;
     }
 
-  
-    setHoldings(
-      holdings.map(h => {
-        if (h.id !== id) return h;
+    setHoldings(previous => previous.map(h => {
+      if (h.id !== id) return h;
+      const isBond = h.type === 'bond';
+      const priceChanged = Number(h.price) !== price;
+      const quantityChanged = Number(h.qty) !== qty;
+      const oldDuration =
+        h.modifiedDuration === null || h.modifiedDuration === undefined || h.modifiedDuration === ''
+          ? null : Number(h.modifiedDuration);
+      const durationChanged = isBond && oldDuration !== modifiedDuration;
+      const invalid = isBond && (priceChanged || quantityChanged || durationChanged);
 
-        const isBond = h.type === 'bond';
+      return {
+        ...h,
+        qty,
+        price,
+        purchasePrice:
+          !isNaN(purchasePrice) && purchasePrice > 0 ? purchasePrice : null,
+        modifiedDuration: isBond
+          ? (durationChanged ? modifiedDuration : invalid ? null : modifiedDuration)
+          : null,
+        chg,
+        ...(invalid ? {
+          ytm: null,
+          dv01: null,
+          dirtyPrice: null,
+          accruedInterestPer100: null,
+          analyticsSource: durationChanged && modifiedDuration !== null ? 'manual' : null,
+          analyticsAsOf: null,
+          analyticsPrice: null
+        } : {})
+      };
+    }));
 
-        const priceChanged =
-          Number(h.price) !== price;
-
-        const quantityChanged =
-          Number(h.qty) !== qty;
-
-        const durationChanged =
-          isBond &&
-          (
-            h.modifiedDuration == null
-              ? modifiedDuration !== null
-              : Number(h.modifiedDuration) !== modifiedDuration
-          );
-
-        const shouldInvalidateAnalytics =
-          isBond &&
-          (
-            priceChanged ||
-            quantityChanged ||
-            durationChanged
-          );
-
-        return {
-          ...h,
-          qty,
-          price,
-
-          purchasePrice:
-            !isNaN(purchasePrice) && purchasePrice > 0
-              ? purchasePrice
-              : null,
-
-          modifiedDuration:
-            isBond
-              ? shouldInvalidateAnalytics
-                ? durationChanged
-                  ? modifiedDuration
-                  : null
-                : modifiedDuration
-              : null,
-
-          chg,
-
-          // Clear analytics calculated from old bond inputs.
-          ...(shouldInvalidateAnalytics
-            ? {
-                ytm: null,
-                dv01: null,
-                dirtyPrice: null,
-                accruedInterestPer100: null,
-                analyticsSource:
-                  durationChanged && modifiedDuration !== null
-                    ? 'manual'
-                    : null,
-                analyticsAsOf: null,
-                analyticsPrice: null
-              }
-            : {})
-        };
-      })
-    );
-
-    
     setEditingId(null);
     showToast('Position updated');
   };
 
   const updateBondAnalytics = (id, analytics) => {
-    setHoldings(previous =>
-      previous.map(holding =>
-        holding.id === id && holding.type === 'bond'
-          ? {
-              ...holding,
-              ...analytics
-            }
-          : holding
-      )
-    );
-
+    if (!storageReady || storageError) return;
+    setHoldings(previous => previous.map(h =>
+      h.id === id && h.type === 'bond' ? { ...h, ...analytics } : h
+    ));
     showToast('Bond analytics updated');
   };
 
   const loadDemo = () => {
+    if (!storageReady || storageError) return;
     if (
       holdings.length &&
       !confirm('Replace current portfolio with demo data?')
@@ -479,6 +449,7 @@ export default function Portfolio() {
   };
 
   const clearAll = () => {
+    if (!storageReady || storageError) return;
     if (!holdings.length) {
       showToast('Already empty');
       return;
@@ -552,6 +523,7 @@ export default function Portfolio() {
       doc.setTextColor(33, 75, 61);
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(9);
+      doc.setTextColor(33, 75, 61);
       doc.text('YIELD CALCULATOR', marginX, 100);
 
       doc.setTextColor(26, 24, 21);
@@ -748,7 +720,7 @@ export default function Portfolio() {
             marginX,
             40
           );
-
+         
           y = 80;
         }
 
@@ -766,6 +738,7 @@ export default function Portfolio() {
         doc.setFont('helvetica', 'normal');
         doc.setFontSize(9);
         doc.setTextColor(107, 103, 96);
+
         doc.text(
           TYPE_CONFIG[h.type]?.name || h.type,
           colType,
@@ -958,6 +931,7 @@ export default function Portfolio() {
   };
 
   const importPDF = async event => {
+    if (!storageReady || storageError) return;
     const file = event.target.files[0];
 
     if (!file) return;
@@ -1096,7 +1070,6 @@ export default function Portfolio() {
                 ? parseFloat(p.purchasePrice)
                 : null,
 
-           
             modifiedDuration:
               p.type === 'bond' &&
               p.modifiedDuration !== null &&
@@ -1107,74 +1080,38 @@ export default function Portfolio() {
                 ? Number(p.modifiedDuration)
                 : null,
 
+            bondCategory:
+              p.type === 'bond' && ['government', 'corporate'].includes(p.bondCategory)
+                ? p.bondCategory : null,
+
             bondTerms:
-              p.type === 'bond' &&
-              p.bondTerms &&
-              typeof p.bondTerms === 'object' &&
+              p.type === 'bond' && p.bondTerms && typeof p.bondTerms === 'object' &&
               !Array.isArray(p.bondTerms)
                 ? {
                     coupon: p.bondTerms.coupon,
                     maturity: p.bondTerms.maturity,
                     freq: p.bondTerms.freq,
                     dc: p.bondTerms.dc
-                  }
-                : null,
+                  } : null,
 
-            settlementDate:
-              p.type === 'bond'
-                ? p.settlementDate || null
-                : null,
-
-            ytm:
-              p.type === 'bond' &&
-              p.ytm !== null &&
-              p.ytm !== undefined &&
-              Number.isFinite(Number(p.ytm))
-                ? Number(p.ytm)
-                : null,
-
-            dv01:
-              p.type === 'bond' &&
-              p.dv01 !== null &&
-              p.dv01 !== undefined &&
-              Number.isFinite(Number(p.dv01))
-                ? Number(p.dv01)
-                : null,
-
-            dirtyPrice:
-              p.type === 'bond' &&
-              p.dirtyPrice !== null &&
-              p.dirtyPrice !== undefined &&
-              Number.isFinite(Number(p.dirtyPrice)) &&
-              Number(p.dirtyPrice) > 0
-                ? Number(p.dirtyPrice)
-                : null,
-
-            accruedInterestPer100:
-              p.type === 'bond' &&
-              p.accruedInterestPer100 !== null &&
+            settlementDate: p.type === 'bond' ? (p.settlementDate || null) : null,
+            ytm: p.type === 'bond' && p.ytm !== null && p.ytm !== undefined &&
+              Number.isFinite(Number(p.ytm)) ? Number(p.ytm) : null,
+            dv01: p.type === 'bond' && p.dv01 !== null && p.dv01 !== undefined &&
+              Number.isFinite(Number(p.dv01)) ? Number(p.dv01) : null,
+            dirtyPrice: p.type === 'bond' && p.dirtyPrice !== null &&
+              p.dirtyPrice !== undefined && Number(p.dirtyPrice) > 0 &&
+              Number.isFinite(Number(p.dirtyPrice)) ? Number(p.dirtyPrice) : null,
+            accruedInterestPer100: p.type === 'bond' && p.accruedInterestPer100 !== null &&
               p.accruedInterestPer100 !== undefined &&
               Number.isFinite(Number(p.accruedInterestPer100))
-                ? Number(p.accruedInterestPer100)
-                : null,
+                ? Number(p.accruedInterestPer100) : null,
+            analyticsSource: p.type === 'bond' ? (p.analyticsSource || null) : null,
+            analyticsAsOf: p.type === 'bond' ? (p.analyticsAsOf || null) : null,
+            analyticsPrice: p.type === 'bond' && p.analyticsPrice !== null &&
+              p.analyticsPrice !== undefined && Number.isFinite(Number(p.analyticsPrice))
+                ? Number(p.analyticsPrice) : null,
 
-            analyticsSource:
-              p.type === 'bond'
-                ? p.analyticsSource || null
-                : null,
-
-            analyticsAsOf:
-              p.type === 'bond'
-                ? p.analyticsAsOf || null
-                : null,
-
-            analyticsPrice:
-              p.type === 'bond' &&
-              p.analyticsPrice !== null &&
-              p.analyticsPrice !== undefined &&
-              Number.isFinite(Number(p.analyticsPrice))
-                ? Number(p.analyticsPrice)
-                : null,
             chg:
               parseFloat(p.chg) || 0,
           }))
@@ -1448,6 +1385,17 @@ export default function Portfolio() {
             </div>
           </div>
 
+          {!storageReady && (
+            <div role="status" style={{ padding: 16, marginBottom: 18, background: '#fff6df' }}>
+              Loading your saved portfolio…
+            </div>
+          )}
+          {storageError && (
+            <div role="alert" style={{ padding: 16, marginBottom: 18, background: '#fff0ed', color: '#963e33' }}>
+              {storageError}
+            </div>
+          )}
+
           <section className="add-card">
             <div className="add-head">
               Add Position
@@ -1535,6 +1483,7 @@ export default function Portfolio() {
                   <option value="etf">
                     ETF
                   </option>
+
                   <option value="fx">
                     FX / Cash
                   </option>
@@ -2134,7 +2083,6 @@ export default function Portfolio() {
 
                 <div className="r mono">
                   <b>{fmtShort(total)}</b>
-
                 </div>
 
                 <div
@@ -2177,761 +2125,631 @@ export default function Portfolio() {
           {holdings.length > 0 && (
             <PortfolioScenarioPanel holdings={holdings} />
           )}
-           
-{holdings.length > 0 && (
-  <BondAnalyticsPanel
-    holdings={holdings}
-    onUpdateHolding={updateBondAnalytics}
-  />
-)}
+
+          {holdings.some(h => h.type === 'bond') && (
+            <BondAnalyticsPanel
+              holdings={holdings}
+              onUpdateHolding={updateBondAnalytics}
+            />
+          )}
+
+          <div className="page-footer">
+            <span>
+              Yield Calculator · Portfolio
+            </span>
+            <span>
+              All data stored locally in your browser.
+            </span>
+          </div>
         </div>
       </main>
 
-      <footer className="ft">
-        <div className="ft-inner">
-          <div>
-            © 2026 Yield Calculator ·{' '}
-            <Link href="/">Home</Link> ·{' '}
-            <a href="mailto:hello@yieldcalculator.tech">
-              Contact
-            </a>
-          </div>
-
-          <div className="ft-disc">
-            Portfolio data stored locally in your browser. For informational purposes only.
-          </div>
-        </div>
-      </footer>
-
       {toast && (
         <div className="toast">
+          <span className="toast-dot">●</span>
           {toast}
         </div>
       )}
 
       <style jsx>{`
         .hd {
+          background: #1A1815;
+          border-bottom: 1px solid #34312B;
           position: sticky;
           top: 0;
           z-index: 100;
-          background: rgba(246, 248, 250, 0.92);
-          backdrop-filter: blur(12px);
-          border-bottom: 1px solid var(--rule);
         }
-
         .hd-inner {
-          max-width: var(--col);
+          max-width: 1400px;
           margin: 0 auto;
-          padding: 16px var(--pad);
+          padding: 0 48px;
+          height: 64px;
           display: flex;
           align-items: center;
-          gap: 32px;
+          justify-content: space-between;
+          gap: 24px;
         }
-
         .hd-brand {
           display: flex;
           align-items: center;
-          gap: 12px;
+          gap: 10px;
+          flex-shrink: 0;
         }
-
         .hd-mark {
-          width: 32px;
-          height: 32px;
-          background: var(--accent);
-          color: var(--paper);
+          width: 34px;
+          height: 34px;
+          background: #C9A96E;
           display: flex;
           align-items: center;
           justify-content: center;
-          font-family: var(--display);
-          font-weight: 700;
-          font-size: 13px;
+          font: 700 12px 'JetBrains Mono', monospace;
+          color: #1A1815;
         }
-
         .hd-name {
-          font-family: var(--display);
-          font-weight: 600;
-          font-size: 18px;
+          font: 500 16px Fraunces, Georgia, serif;
+          color: #F7F5EF;
+          letter-spacing: -.3px;
         }
-
-        .hd-name :global(i) {
-          font-style: italic;
+        .hd-name i {
           font-weight: 400;
-          color: var(--ink-3);
+          color: #C9A96E;
         }
-
         .hd-nav {
-          flex: 1;
           display: flex;
-          gap: 24px;
-          justify-content: center;
-          flex-wrap: wrap;
+          align-items: center;
+          gap: 28px;
+          overflow-x: auto;
         }
-
         .hd-link {
-          padding: 8px 4px;
-          font-family: var(--sans);
-          font-size: 13.5px;
-          font-weight: 500;
-          color: var(--ink-3);
-          border-bottom: 2px solid transparent;
+          font: 500 11px Inter, sans-serif;
+          color: #9B978F;
+          letter-spacing: .1px;
           white-space: nowrap;
+          transition: color .2s;
         }
-
-        .hd-link:hover {
-          color: var(--ink);
-        }
-
+        .hd-link:hover,
         .hd-link.active {
-          color: var(--accent);
-          border-bottom-color: var(--accent);
+          color: #F7F5EF;
         }
-
+        .hd-link.active {
+          border-bottom: 1px solid #C9A96E;
+          padding-bottom: 5px;
+        }
         .page {
-          padding: clamp(40px, 6vw, 72px) 0 80px;
-          min-height: calc(100vh - 200px);
+          min-height: 100vh;
+          background: #F7F5EF;
+          color: #1A1815;
+          font-family: Inter, sans-serif;
         }
-
         .page-inner {
-          max-width: var(--col);
+          max-width: 1400px;
           margin: 0 auto;
-          padding: 0 var(--pad);
+          padding: 64px 48px 40px;
         }
-
         .page-head {
           display: flex;
-          justify-content: space-between;
           align-items: flex-end;
-          gap: 32px;
+          justify-content: space-between;
+          gap: 28px;
           flex-wrap: wrap;
-          margin-bottom: 40px;
-          padding-bottom: 28px;
-          border-bottom: 1px solid var(--rule);
+          margin-bottom: 36px;
         }
-
-        .head-text {
-          flex: 1;
-          min-width: 320px;
-        }
-
         .eyebrow {
-          font-family: var(--sans);
-          font-weight: 600;
-          font-size: 11px;
-          letter-spacing: .22em;
+          font: 600 10px Inter, sans-serif;
+          color: #214B3D;
+          letter-spacing: 2px;
           text-transform: uppercase;
-          color: var(--accent);
-          margin-bottom: 14px;
-          display: flex;
-          align-items: center;
-          gap: 12px;
+          margin-bottom: 12px;
         }
-
-        .eyebrow::before {
-          content: "";
-          width: 28px;
-          height: 1px;
-          background: var(--accent);
-        }
-
         .page-h {
-          font-family: var(--display);
-          font-weight: 500;
-          font-size: clamp(38px, 5.5vw, 64px);
-          line-height: 1;
-          letter-spacing: -.022em;
-          margin-bottom: 14px;
+          margin: 0 0 12px;
+          font: 500 clamp(36px, 5vw, 58px) Fraunces, Georgia, serif;
+          letter-spacing: -1.5px;
         }
-
-        .page-h :global(em) {
-          font-style: italic;
+        .page-h em {
+          color: #214B3D;
           font-weight: 400;
-          color: var(--accent);
         }
-
         .page-lede {
-          font-family: var(--sans);
-          font-size: 16px;
-          line-height: 1.6;
-          color: var(--ink-2);
-          max-width: 620px;
+          max-width: 570px;
+          margin: 0;
+          color: #817C74;
+          font: 12px/1.8 Inter, sans-serif;
         }
-
         .head-actions {
           display: flex;
+          flex-wrap: wrap;
           gap: 8px;
-          flex-wrap: wrap;
+          align-items: center;
         }
-
         .btn-ghost {
-          padding: 9px 16px;
-          border: 1px solid var(--border);
-          background: var(--surface);
-          color: var(--text2);
-          font-family: var(--sans);
-          font-size: 12px;
-          font-weight: 500;
-          border-radius: 7px;
-        }
-
-        .btn-ghost:hover {
-          border-color: var(--blue);
-          color: var(--blue);
-          background: var(--blue-dim);
-        }
-
-        .btn-ghost.danger:hover {
-          border-color: var(--red);
-          color: var(--red);
-          background: var(--red-dim);
-        }
-
-        .btn-ghost:disabled {
-          opacity: 0.5;
-          cursor: wait;
-        }
-
-        .ticker-wrap {
-          position: relative;
-          display: flex;
-          align-items: center;
-        }
-
-        .ticker-wrap input {
-          flex: 1;
-          padding-right: 80px;
-        }
-
-        .lookup-tag {
-          position: absolute;
-          right: 8px;
-          font-family: var(--sans);
-          font-size: 10px;
-          font-weight: 600;
-          padding: 3px 8px;
-          pointer-events: none;
-        }
-
-        .lookup-tag.success {
-          color: var(--bull);
-          background: var(--accent-soft);
-        }
-
-        .lookup-tag.error {
-          color: var(--bear);
-          background: #FCEDE9;
-        }
-
-        .btn-fill {
-          display: inline-block;
-          padding: 12px 28px;
-          background: var(--blue);
-          color: #fff;
-          font-family: var(--sans);
-          font-weight: 600;
-          font-size: 13.5px;
-          border-radius: 9px;
-          margin-top: 16px;
-        }
-
-        .add-card {
-          background: var(--paper-2);
-          border: 1px solid var(--rule);
-          padding: 24px 28px;
-          margin-bottom: 28px;
-        }
-
-        .add-head {
-          font-family: var(--sans);
-          font-size: 11px;
-          letter-spacing: .22em;
-          text-transform: uppercase;
-          color: var(--ink-3);
-          font-weight: 600;
-          margin-bottom: 18px;
-        }
-
-        .add-row {
-          display: grid;
-          grid-template-columns:
-            1.25fr
-            0.85fr
-            0.9fr
-            0.9fr
-            0.9fr
-            0.8fr;
-          gap: 10px;
-          align-items: start;
-        }
-
-        .add-row .field {
-          min-width: 0;
-        }
-
-        .field {
-          display: flex;
-          flex-direction: column;
-          gap: 6px;
-        }
-
-        .field label {
-          font-family: var(--sans);
-          font-size: 10.5px;
-          font-weight: 600;
-          letter-spacing: .12em;
-          text-transform: uppercase;
-          color: var(--ink-3);
-        }
-
-        .field input,
-        .field select {
-          width: 100%;
-          box-sizing: border-box;
-          padding: 10px 12px;
-          background: var(--bg);
-          border: 1.5px solid var(--border2);
-          border-radius: 7px;
-          font-family: var(--mono);
-          font-size: 13.5px;
-          color: var(--text);
-          outline: none;
-        }
-
-        .field input:focus,
-        .field select:focus {
-          border-color: var(--blue);
-          background: var(--surface);
-        }
-
-        .field input:disabled {
-          background: var(--paper-3);
-          color: var(--ink-3);
-          cursor: not-allowed;
-          opacity: 0.8;
-        }
-
-        .field-note {
-          font-family: var(--sans);
-          font-size: 9.5px;
-          color: var(--ink-3);
-          font-style: italic;
-          min-height: 12px;
-        }
-
-        .add-actions {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          gap: 24px;
-          margin-top: 18px;
-          padding-top: 18px;
-          border-top: 1px solid var(--rule);
-          flex-wrap: wrap;
-        }
-
-        .add-hint {
-          font-family: var(--sans);
-          font-size: 12.5px;
-          color: var(--ink-3);
-          font-style: italic;
-          line-height: 1.5;
-          flex: 1;
-          margin: 0;
-        }
-
-        .btn-add {
-          padding: 11px 24px;
-          background: var(--blue);
-          color: #fff;
-          font-family: var(--sans);
-          font-weight: 600;
-          font-size: 13px;
-          border-radius: 9px;
+          border: 1px solid #D8D3C8;
+          background: #fff;
+          color: #45423D;
+          border-radius: 5px;
+          padding: 10px 13px;
+          font: 600 10px Inter, sans-serif;
+          transition: .2s;
           white-space: nowrap;
         }
-
-        .kpis {
-          display: grid;
-          grid-template-columns: 2fr 1fr 1fr 1fr;
-          gap: 1px;
-          background: var(--rule);
-          border: 1px solid var(--rule);
-          margin-bottom: 28px;
+        .btn-ghost:hover {
+          background: #EAE6DC;
+          border-color: #C0B7A5;
         }
-
-        .kpi {
-          background: var(--paper-2);
-          padding: 22px 26px;
+        .btn-ghost.refresh {
+          color: #214B3D;
+          border-color: #A9C3B2;
         }
-
-        .kpi.feat {
-          background: var(--ink);
-          color: var(--paper);
+        .btn-ghost.danger {
+          color: #A33D2E;
+          border-color: #E2C5BD;
         }
-
-        .kpi-l {
-          font-family: var(--sans);
-          font-size: 10.5px;
-          letter-spacing: .2em;
+        .btn-ghost:disabled {
+          opacity: .5;
+          cursor: not-allowed;
+        }
+        .add-card {
+          border: 1px solid #DED8CB;
+          background: #fff;
+          border-radius: 8px;
+          margin-bottom: 26px;
+          overflow: hidden;
+        }
+        .add-head {
+          padding: 16px 22px;
+          background: #F3F0E8;
+          border-bottom: 1px solid #DED8CB;
+          font: 600 10px Inter, sans-serif;
           text-transform: uppercase;
-          font-weight: 600;
-          opacity: .6;
-          margin-bottom: 10px;
+          letter-spacing: 1.5px;
+          color: #214B3D;
         }
-
-        .kpi-v {
-          font-family: var(--display);
-          font-weight: 600;
-          font-size: 28px;
-          line-height: 1.05;
-        }
-
-        .kpi.feat .kpi-v {
-          font-size: 36px;
-          color: var(--paper);
-        }
-
-        .kpi-v.top {
-          font-family: var(--mono);
-          font-size: 22px;
-        }
-
-        .kpi-v.pos,
-        .pos {
-          color: var(--bull);
-        }
-
-        .kpi-v.neg,
-        .neg {
-          color: var(--bear);
-        }
-
-        .kpi-c {
-          font-family: var(--sans);
-          font-weight: 500;
-          font-size: 13px;
-          margin-top: 8px;
+        .add-row {
           display: flex;
-          align-items: baseline;
-          gap: 8px;
           flex-wrap: wrap;
+          gap: 12px;
+          padding: 22px;
+          align-items: flex-start;
         }
-
-        .kpi-c.pos {
-          color: #5DD176;
-        }
-
-        .kpi-c.neg {
-          color: #E95B4B;
-        }
-
-        .kpi-c-sub {
-          font-family: var(--mono);
-          font-size: 11.5px;
-          opacity: .7;
-        }
-
-        .kpi-s {
-          font-family: var(--mono);
-          font-size: 11.5px;
-          color: var(--ink-3);
-          margin-top: 6px;
-        }
-
-        .data-status {
-          background: var(--paper-2);
-          border: 1px solid var(--rule);
-          border-left: 3px solid var(--accent);
-          padding: 12px 18px;
-          margin-bottom: 24px;
+        .field {
+          flex: 1 1 120px;
+          min-width: 0;
           display: flex;
           flex-direction: column;
-          gap: 4px;
+          gap: 7px;
         }
-
+        .field.f-tkr {
+          flex: 1.5 1 170px;
+        }
+        .field label {
+          font: 600 9px Inter, sans-serif;
+          color: #817C74;
+          letter-spacing: .5px;
+          text-transform: uppercase;
+        }
+        .field input,
+        .field select {
+          box-sizing: border-box;
+          width: 100%;
+          min-width: 0;
+          height: 39px;
+          padding: 0 11px;
+          background: #FAF9F6;
+          border: 1px solid #DED8CB;
+          border-radius: 4px;
+          outline: none;
+          color: #1A1815;
+          font: 12px 'JetBrains Mono', monospace;
+          transition: border-color .2s;
+        }
+        .field input:focus,
+        .field select:focus {
+          border-color: #214B3D;
+        }
+        .field input:disabled {
+          opacity: .6;
+          cursor: not-allowed;
+        }
+        .field-note {
+          font: 9px Inter, sans-serif;
+          color: #9B978F;
+        }
+        .ticker-wrap {
+          position: relative;
+        }
+        .ticker-wrap input {
+          padding-right: 55px;
+        }
+        .lookup-tag {
+          position: absolute;
+          top: 50%;
+          right: 7px;
+          transform: translateY(-50%);
+          font: 600 9px Inter, sans-serif;
+          white-space: nowrap;
+        }
+        .lookup-tag.loading {
+          color: #9B978F;
+        }
+        .lookup-tag.success {
+          color: #214B3D;
+        }
+        .lookup-tag.error {
+          color: #A33D2E;
+        }
+        .add-actions {
+          padding: 13px 22px;
+          background: #FAF9F6;
+          border-top: 1px solid #EFECE5;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 20px;
+          flex-wrap: wrap;
+        }
+        .add-hint {
+          margin: 0;
+          max-width: 760px;
+          font: 10px/1.7 Inter, sans-serif;
+          color: #817C74;
+        }
+        .add-hint b {
+          color: #45423D;
+        }
+        .btn-add,
+        .btn-fill {
+          background: #214B3D;
+          border-radius: 4px;
+          color: #fff;
+          padding: 12px 20px;
+          font: 600 11px Inter, sans-serif;
+          white-space: nowrap;
+          transition: background .2s;
+        }
+        .btn-add:hover,
+        .btn-fill:hover {
+          background: #16382D;
+        }
+        .kpis {
+          display: grid;
+          grid-template-columns: repeat(4, minmax(0, 1fr));
+          gap: 12px;
+          margin: 28px 0 22px;
+        }
+        .kpi {
+          min-width: 0;
+          padding: 20px 22px;
+          border: 1px solid #DED8CB;
+          background: #fff;
+          border-radius: 6px;
+        }
+        .kpi.feat {
+          background: #214B3D;
+          border-color: #214B3D;
+        }
+        .kpi-l {
+          margin-bottom: 14px;
+          color: #817C74;
+          font: 600 9px Inter, sans-serif;
+          letter-spacing: 1px;
+          text-transform: uppercase;
+        }
+        .feat .kpi-l {
+          color: #B3C9BC;
+        }
+        .kpi-v {
+          font: 500 clamp(19px, 2vw, 27px) Fraunces, Georgia, serif;
+          color: #1A1815;
+          letter-spacing: -.4px;
+          overflow-wrap: anywhere;
+        }
+        .feat .kpi-v {
+          color: #fff;
+          font-size: clamp(23px, 2.5vw, 33px);
+        }
+        .kpi-v.top {
+          font: 600 24px 'JetBrains Mono', monospace;
+        }
+        .kpi-c {
+          margin-top: 12px;
+          font: 600 11px Inter, sans-serif;
+        }
+        .kpi-c.pos {
+          color: #A9D8B6;
+        }
+        .kpi-c.neg {
+          color: #F0AD9D;
+        }
+        .kpi-c-sub {
+          margin-left: 5px;
+          font-weight: 400;
+          opacity: .75;
+        }
+        .kpi-s {
+          margin-top: 10px;
+          color: #817C74;
+          font: 10px/1.5 Inter, sans-serif;
+        }
+        .pos {
+          color: #1F7048 !important;
+        }
+        .neg {
+          color: #A33D2E !important;
+        }
+        .data-status {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          flex-wrap: wrap;
+          gap: 10px;
+          padding: 12px 18px;
+          border: 1px solid #D7E3D8;
+          border-radius: 5px;
+          margin-bottom: 20px;
+          background: #EDF4ED;
+        }
         .ds-line {
           display: flex;
           align-items: center;
-          gap: 10px;
-          font-family: var(--sans);
-          font-size: 13px;
-          color: var(--ink-2);
+          gap: 9px;
         }
-
         .ds-dot {
-          width: 7px;
-          height: 7px;
-          border-radius: 50%;
-          background: var(--accent);
-        }
-
-        .ds-note {
-          font-family: var(--sans);
-          font-style: italic;
-          font-size: 11.5px;
-          color: var(--ink-3);
-          padding-left: 17px;
-        }
-
-        .auto-mark {
           display: inline-block;
-          margin-left: 6px;
-          font-family: var(--sans);
-          font-size: 8px;
-          font-weight: 700;
-          letter-spacing: .08em;
-          color: var(--ink-3);
-          opacity: 0.7;
+          width: 6px;
+          height: 6px;
+          background: #2A8C50;
+          border-radius: 50%;
+          flex-shrink: 0;
         }
-
+        .ds-text {
+          font: 10px Inter, sans-serif;
+          color: #315A3D;
+        }
+        .ds-note {
+          font: 9px Inter, sans-serif;
+          color: #63816D;
+        }
         .empty {
-          padding: 80px 24px 60px;
+          border: 1px dashed #CFC7B7;
+          background: #fff;
+          border-radius: 8px;
           text-align: center;
-          background: var(--paper-2);
-          border: 1px solid var(--rule);
+          padding: 60px 20px;
+          margin: 22px 0;
         }
-
         .empty-mark {
-          font-family: var(--display);
-          font-size: 64px;
-          color: var(--ink-4);
+          color: #C9A96E;
+          font: 50px Fraunces, Georgia, serif;
+          line-height: 1;
         }
-
         .empty-h {
-          font-family: var(--display);
-          font-weight: 500;
-          font-size: 26px;
-          margin-bottom: 10px;
+          font: 500 25px Fraunces, Georgia, serif;
+          margin: 10px 0;
         }
-
         .empty-p {
-          font-family: var(--sans);
-          font-size: 15px;
-          color: var(--ink-3);
-          font-style: italic;
-          max-width: 440px;
-          margin: 0 auto;
+          font: 12px/1.7 Inter, sans-serif;
+          color: #817C74;
+          max-width: 360px;
+          margin: 0 auto 25px;
         }
-
         .table {
-          background: var(--paper-2);
-          border: 1px solid var(--rule);
           overflow-x: auto;
+          border: 1px solid #DED8CB;
+          border-radius: 6px;
+          background: #fff;
+          margin-top: 20px;
         }
-
         .thead,
         .trow,
         .tfoot {
           display: grid;
           grid-template-columns:
-            1fr
-            0.8fr
-            1fr
-            1fr
-            1fr
-            1fr
-            1fr
-            1fr
-            0.7fr
-            0.8fr;
-          padding: 13px 22px;
-          border-bottom: 1px solid var(--rule);
+            minmax(100px, 1.2fr)
+            minmax(70px, .7fr)
+            minmax(85px, 1fr)
+            minmax(80px, .9fr)
+            minmax(95px, 1fr)
+            minmax(75px, .8fr)
+            minmax(100px, 1.1fr)
+            minmax(100px, 1.1fr)
+            minmax(65px, .6fr)
+            65px;
           align-items: center;
-          min-width: 1150px;
+          gap: 10px;
+          padding-left: 18px;
+          padding-right: 18px;
+          min-width: 1050px;
         }
-
         .thead {
-          font-family: var(--sans);
-          font-size: 10.5px;
-          letter-spacing: .14em;
+          min-height: 43px;
+          background: #F3F0E8;
+          border-bottom: 1px solid #DED8CB;
+          font: 600 9px Inter, sans-serif;
+          letter-spacing: .5px;
           text-transform: uppercase;
-          color: var(--ink-3);
-          font-weight: 600;
-          background: var(--paper-3);
-          border-bottom: 2px solid var(--ink);
+          color: #817C74;
         }
-
         .trow {
-          font-size: 13.5px;
+          min-height: 58px;
+          border-bottom: 1px solid #EFECE5;
+          font: 11px Inter, sans-serif;
         }
-
         .trow:hover {
-          background: var(--paper-3);
+          background: #FAF9F6;
         }
-
         .trow.editing {
-          background: var(--accent-soft);
+          background: #F2F7F2;
         }
-
-        .tfoot {
-          background: var(--paper-3);
-          border-top: 1px solid var(--ink);
-          border-bottom: none;
-          font-family: var(--sans);
-          font-size: 12.5px;
-          font-weight: 600;
-          color: var(--ink-3);
-          text-transform: uppercase;
+        .td-tkr {
+          min-width: 0;
+          font: 600 11px 'JetBrains Mono', monospace;
+          color: #1A1815;
+          overflow-wrap: anywhere;
         }
-
-        .tfoot b {
-          font-family: var(--mono);
-          color: var(--ink);
-          font-size: 14px;
-          text-transform: none;
+        .pill {
+          display: inline-block;
+          padding: 5px 7px;
+          border-radius: 3px;
+          font: 600 9px Inter, sans-serif;
+          white-space: nowrap;
         }
-
         .r {
           text-align: right;
         }
-
         .c {
           text-align: center;
         }
-
-        .td-tkr {
-          font-family: var(--mono);
-          font-weight: 600;
-          color: var(--ink);
-          font-size: 13.5px;
-        }
-
-        .pill {
-          display: inline-block;
-          font-family: var(--mono);
-          font-size: 10px;
-          font-weight: 600;
-          padding: 3px 10px;
-          text-transform: uppercase;
-        }
-
         .mono {
-          font-family: var(--mono);
-          font-weight: 500;
-          color: var(--ink);
+          font-family: 'JetBrains Mono', monospace;
+          font-size: 10px;
         }
-
         .mv {
           font-weight: 600;
+          color: #1A1815;
         }
-
+        .auto-mark {
+          display: block;
+          margin-top: 4px;
+          color: #9B978F;
+          font: 600 7px Inter, sans-serif;
+          letter-spacing: .5px;
+        }
+        .inline-i {
+          box-sizing: border-box;
+          width: 100%;
+          min-width: 0;
+          max-width: 105px;
+          background: #fff;
+          border: 1px solid #B4C9B7;
+          border-radius: 3px;
+          padding: 7px 5px;
+          text-align: right;
+          color: #1A1815;
+          font: 10px 'JetBrains Mono', monospace;
+        }
         .row-actions {
           display: flex;
-          gap: 4px;
           justify-content: center;
+          gap: 6px;
         }
-
         .ra {
-          padding: 4px 9px;
-          color: var(--ink-3);
-          font-size: 14px;
+          padding: 4px;
+          font-size: 15px;
+          color: #817C74;
         }
-
         .ra:hover {
-          color: var(--accent);
-          background: var(--accent-soft);
+          color: #214B3D;
         }
-
         .ra.del:hover {
-          color: var(--bear);
-          background: #FCEDE9;
+          color: #A33D2E;
         }
-
-        .inline-i {
-          width: 100%;
-          padding: 5px 8px;
-          border: 1px solid var(--accent);
-          background: var(--paper);
-          font-family: var(--mono);
-          font-size: 13px;
-          text-align: right;
-          outline: none;
-          color: var(--ink);
-          box-sizing: border-box;
+        .tfoot {
+          min-height: 58px;
+          background: #F3F0E8;
+          border-top: 1px solid #DED8CB;
+          font: 600 11px Inter, sans-serif;
         }
-
-        .ft {
-          background: var(--ink);
-          color: var(--paper);
-          padding: 28px var(--pad);
-        }
-
-        .ft-inner {
-          max-width: var(--col);
-          margin: 0 auto;
+        .page-footer {
           display: flex;
           justify-content: space-between;
-          gap: 16px;
+          gap: 15px;
           flex-wrap: wrap;
-          font-family: var(--sans);
-          font-size: 12px;
-          color: rgba(248, 244, 234, 0.6);
+          margin-top: 50px;
+          padding-top: 20px;
+          border-top: 1px solid #DED8CB;
+          color: #9B978F;
+          font: 10px Inter, sans-serif;
         }
-
-        .ft-disc {
-          font-style: italic;
-          opacity: 0.7;
-        }
-
         .toast {
           position: fixed;
-          bottom: 24px;
-          right: 24px;
-          background: var(--ink);
-          color: var(--paper);
-          padding: 12px 20px;
-          font-family: var(--sans);
-          font-size: 13px;
-          font-weight: 500;
-          z-index: 200;
-          border-left: 3px solid var(--accent);
+          bottom: 26px;
+          left: 50%;
+          transform: translateX(-50%);
+          background: #1A1815;
+          color: white;
+          padding: 13px 22px;
+          border-radius: 5px;
+          font: 600 11px Inter, sans-serif;
+          box-shadow: 0 10px 30px rgba(0,0,0,.18);
+          z-index: 999;
+          display: flex;
+          gap: 9px;
+          align-items: center;
+        }
+        .toast-dot {
+          color: #C9A96E;
+          font-size: 9px;
         }
 
-        @media (max-width: 960px) {
+        @media (max-width: 1100px) {
           .hd-inner {
+            padding: 0 24px;
+          }
+          .page-inner {
+            padding: 45px 24px 30px;
+          }
+          .hd-nav {
             gap: 16px;
           }
-
-          .hd-nav {
-            gap: 18px;
+          .kpis {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
           }
-
-          .add-row {
-            grid-template-columns: 1fr 1fr;
+        }
+        @media (max-width: 650px) {
+          .hd-inner {
+            padding: 0 14px;
+            gap: 14px;
+          }
+          .hd-name {
+            font-size: 13px;
+          }
+          .hd-nav {
             gap: 12px;
           }
-
-          .kpis {
-            grid-template-columns: 1fr 1fr;
+          .hd-link {
+            font-size: 10px;
           }
-
+          .page-inner {
+            padding: 30px 14px;
+          }
+          .page-head {
+            align-items: flex-start;
+          }
+          .head-actions {
+            width: 100%;
+          }
+          .btn-ghost {
+            flex: 1 1 auto;
+          }
+          .add-row {
+            padding: 14px;
+          }
           .add-actions {
-            flex-direction: column;
-            align-items: stretch;
+            padding: 14px;
           }
-
           .btn-add {
             width: 100%;
           }
+          .kpis {
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+          }
+          .kpi {
+            padding: 15px;
+          }
+          .kpi-v {
+            font-size: 19px;
+          }
+          .feat .kpi-v {
+            font-size: 22px;
+          }
+          .page-footer {
+            margin-top: 32px;
+          }
         }
-
-        @media (max-width: 560px) {
-          .add-row {
-            grid-template-columns: 1fr;
-          }
-
-          .page-head {
-            flex-direction: column;
-            align-items: stretch;
-          }
-
+        @media (max-width: 400px) {
           .kpis {
             grid-template-columns: 1fr;
-          }
-
-          .toast {
-            left: 24px;
-            right: 24px;
-            bottom: 16px;
           }
         }
       `}</style>
