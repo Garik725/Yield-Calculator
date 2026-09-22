@@ -26,14 +26,15 @@ const number = (value, dp = 4) =>
       })
     : '—';
 
+
 const emptyForm = () => ({
+  bondCategory: '',
   coupon: '',
   maturity: '',
   freq: '2',
   dc: 'ACT/ACT',
   settlement: todayUTC()
 });
-
 export default function BondAnalyticsPanel({
   holdings = [],
   onUpdateHolding
