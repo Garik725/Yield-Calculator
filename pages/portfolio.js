@@ -374,22 +374,73 @@ export default function Portfolio() {
       return;
     }
 
+  
     setHoldings(
-      holdings.map(h =>
-        h.id === id
-          ? {
-              ...h,
-              qty,
-              price,
-              purchasePrice:
-                !isNaN(purchasePrice) && purchasePrice > 0
-                  ? purchasePrice
-                  : null,
-              modifiedDuration: h.type === 'bond' ? modifiedDuration : null,
-              chg,
-            }
-          : h
-      )
+      holdings.map(h => {
+        if (h.id !== id) return h;
+
+        const isBond = h.type === 'bond';
+
+        const priceChanged =
+          Number(h.price) !== price;
+
+        const quantityChanged =
+          Number(h.qty) !== qty;
+
+        const durationChanged =
+          isBond &&
+          (
+            h.modifiedDuration == null
+              ? modifiedDuration !== null
+              : Number(h.modifiedDuration) !== modifiedDuration
+          );
+
+        const shouldInvalidateAnalytics =
+          isBond &&
+          (
+            priceChanged ||
+            quantityChanged ||
+            durationChanged
+          );
+
+        return {
+          ...h,
+          qty,
+          price,
+
+          purchasePrice:
+            !isNaN(purchasePrice) && purchasePrice > 0
+              ? purchasePrice
+              : null,
+
+          modifiedDuration:
+            isBond
+              ? shouldInvalidateAnalytics
+                ? durationChanged
+                  ? modifiedDuration
+                  : null
+                : modifiedDuration
+              : null,
+
+          chg,
+
+          // Clear analytics calculated from old bond inputs.
+          ...(shouldInvalidateAnalytics
+            ? {
+                ytm: null,
+                dv01: null,
+                dirtyPrice: null,
+                accruedInterestPer100: null,
+                analyticsSource:
+                  durationChanged && modifiedDuration !== null
+                    ? 'manual'
+                    : null,
+                analyticsAsOf: null,
+                analyticsPrice: null
+              }
+            : {})
+        };
+      })
     );
 
     
