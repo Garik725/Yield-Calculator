@@ -8,7 +8,8 @@ import {
   SUPPORTED_DAY_COUNTS
 } from '../lib/bondMath';
 
-const todayUTC = () => new Date().toISOString().slice(0, 10);
+const todayUTC = () =>
+  new Date().toISOString().slice(0, 10);
 
 const money = value =>
   Number.isFinite(value)
@@ -26,7 +27,6 @@ const number = (value, dp = 4) =>
       })
     : '—';
 
-
 const emptyForm = () => ({
   bondCategory: '',
   coupon: '',
@@ -35,24 +35,36 @@ const emptyForm = () => ({
   dc: 'ACT/ACT',
   settlement: todayUTC()
 });
+
 export default function BondAnalyticsPanel({
   holdings = [],
   onUpdateHolding
 }) {
   const [selectedId, setSelectedId] = useState('');
+
   const [form, setForm] = useState(emptyForm);
+
   const [result, setResult] = useState(null);
+
   const [error, setError] = useState('');
+
   const [savedMessage, setSavedMessage] = useState('');
 
-  const bonds = holdings.filter(h => h.type === 'bond');
+  const bonds = holdings.filter(
+    holding => holding.type === 'bond'
+  );
 
   const selected = bonds.find(
     bond => String(bond.id) === selectedId
   );
 
+  // -------------------------------------------------------
+  // Select an existing bond
+  // -------------------------------------------------------
+
   const selectBond = id => {
     setSelectedId(id);
+
     setResult(null);
     setError('');
     setSavedMessage('');
@@ -68,18 +80,29 @@ export default function BondAnalyticsPanel({
 
     const terms = bond.bondTerms || {};
 
-    
     setForm({
       bondCategory: bond.bondCategory || '',
+
       coupon:
-        terms.coupon !== undefined && terms.coupon !== null
+        terms.coupon !== undefined &&
+        terms.coupon !== null
           ? String(terms.coupon)
           : '',
+
       maturity: terms.maturity || '',
+
       freq: String(terms.freq ?? 2),
+
       dc: terms.dc || 'ACT/ACT',
-      settlement: bond.settlementDate || todayUTC()
+
+      settlement:
+        bond.settlementDate || todayUTC()
     });
+  };
+
+  // -------------------------------------------------------
+  // Handle input changes
+  // -------------------------------------------------------
 
   const updateField = (key, value) => {
     setForm(previous => ({
@@ -87,11 +110,17 @@ export default function BondAnalyticsPanel({
       [key]: value
     }));
 
-    // Never display an old calculation alongside new inputs.
+    // Do not display calculated figures for outdated
+    // assumptions after a user changes an input.
+
     setResult(null);
     setError('');
     setSavedMessage('');
   };
+
+  // -------------------------------------------------------
+  // Calculate bond analytics
+  // -------------------------------------------------------
 
   const calculate = () => {
     setError('');
@@ -103,15 +132,29 @@ export default function BondAnalyticsPanel({
       return;
     }
 
+    // Bond classification is required by scenarioMath.js.
+
+    if (
+      form.bondCategory !== 'government' &&
+      form.bondCategory !== 'corporate'
+    ) {
+      setError(
+        'Select Government or Corporate before calculating.'
+      );
+      return;
+    }
+
     if (form.coupon.trim() === '') {
       setError('Enter the annual coupon rate.');
       return;
     }
 
     const coupon = Number(form.coupon);
+
     const freq = Number(form.freq);
 
     const cleanPrice = Number(selected.price);
+
     const face = Number(selected.qty);
 
     if (
@@ -120,7 +163,9 @@ export default function BondAnalyticsPanel({
       !Number.isFinite(face) ||
       face <= 0
     ) {
-      setError('The selected bond needs a valid price and face value.');
+      setError(
+        'The selected bond needs a valid clean price and face value.'
+      );
       return;
     }
 
@@ -155,102 +200,171 @@ export default function BondAnalyticsPanel({
         !analytics ||
         !Number.isFinite(analytics.ytm) ||
         !Number.isFinite(analytics.modDur) ||
-        !Number.isFinite(analytics.dv01)
+        !Number.isFinite(analytics.dv01) ||
+        !Number.isFinite(analytics.dirtyPx) ||
+        !Number.isFinite(analytics.ai)
       ) {
-        throw new Error('The bond calculation did not return valid results.');
+        throw new Error(
+          'The bond calculation did not return valid results.'
+        );
       }
 
       setResult({
         ...analytics,
+
+        bondCategory: form.bondCategory,
+
         bondTerms,
+
         settlement: form.settlement,
+
         calculatedFromPrice: cleanPrice,
+
         calculatedFromFace: face
       });
     } catch (err) {
-      setError(err.message || 'Bond calculation failed.');
+      setError(
+        err.message || 'Bond calculation failed.'
+      );
     }
   };
 
+  // -------------------------------------------------------
+  // Save results into the portfolio
+  // -------------------------------------------------------
+
   const saveToPortfolio = () => {
     if (!selected || !result) {
-      setError('Calculate the bond analytics before saving.');
-      return;
-    }
-
-    // Guard against saving analytics for an old price or face value.
-    if (
-      Number(selected.price) !== result.calculatedFromPrice ||
-      Number(selected.qty) !== result.calculatedFromFace
-    ) {
-      setResult(null);
       setError(
-        'The bond price or face value changed. Calculate again before saving.'
+        'Calculate the bond analytics before saving.'
       );
       return;
     }
 
+    // Never save analytics calculated from an old
+    // clean price or face value.
+
+    if (
+      Number(selected.price) !==
+        result.calculatedFromPrice ||
+      Number(selected.qty) !==
+        result.calculatedFromFace
+    ) {
+      setResult(null);
+
+      setError(
+        'The bond price or face value changed. Calculate again before saving.'
+      );
+
+      return;
+    }
+
     if (typeof onUpdateHolding !== 'function') {
-      setError('Portfolio update handler is unavailable.');
+      setError(
+        'Portfolio update handler is unavailable.'
+      );
       return;
     }
 
     onUpdateHolding(selected.id, {
+      // Determines the shocks applied by Scenario Lab.
+      bondCategory: result.bondCategory,
+
+      // Contractual information.
       bondTerms: result.bondTerms,
+
       settlementDate: result.settlement,
 
-      // Fields already supported by the Scenario Lab.
+      // Duration used by the Scenario Lab.
       modifiedDuration: result.modDur,
 
-      // Analytics for future bond-risk features.
+      // Additional bond analytics.
       ytm: result.ytm,
+
       dv01: result.dv01,
+
       dirtyPrice: result.dirtyPx,
+
       accruedInterestPer100: result.ai,
 
+      // Metadata for tracking when and how
+      // the figures were calculated.
       analyticsSource: 'calculated',
+
       analyticsAsOf: result.settlement,
+
       analyticsPrice: result.calculatedFromPrice
     });
 
     setSavedMessage(
-      'Bond analytics saved. Run the Scenario Lab to use the calculated duration.'
+      'Bond analytics and category saved. Run the Scenario Lab to use the calculated duration.'
     );
   };
+
+  // -------------------------------------------------------
+  // Interface
+  // -------------------------------------------------------
 
   return (
     <section className="bond-panel">
       <div className="heading">
-        <div className="eyebrow">Fixed-income analytics</div>
-        <h2>Bond <em>Analytics.</em></h2>
+        <div className="eyebrow">
+          Fixed-income analytics
+        </div>
+
+        <h2>
+          Bond <em>Analytics.</em>
+        </h2>
+
         <p>
           Calculate yield, modified duration and DV01
-          using your bond's clean price and contractual terms.
+          using your bond's clean price and contractual
+          terms. Classify the bond so the Scenario Lab
+          can distinguish government interest-rate risk
+          from corporate credit-spread risk.
         </p>
       </div>
 
       {bonds.length === 0 ? (
         <div className="notice">
-          Add an individual bond to The Book to calculate its analytics.
+          Add an individual bond to The Book to
+          calculate its analytics.
         </div>
       ) : (
         <>
           <div className="form-grid">
+
+            {/* SELECT BOND */}
+
             <label>
               <span>Select bond</span>
+
               <select
                 value={selectedId}
-                onChange={e => selectBond(e.target.value)}
+                onChange={e =>
+                  selectBond(e.target.value)
+                }
               >
-                <option value="">Choose a holding</option>
-                
+                <option value="">
+                  Choose a holding
+                </option>
+
                 {bonds.map(bond => (
-                  <option key={bond.id} value={String(bond.id)}>
-                    {bond.tkr} · {money(Number(bond.qty) * Number(bond.price) / 100)}
+                  <option
+                    key={bond.id}
+                    value={String(bond.id)}
+                  >
+                    {bond.tkr} ·{' '}
+                    {money(
+                      Number(bond.qty) *
+                      Number(bond.price) / 100
+                    )}
                   </option>
                 ))}
               </select>
             </label>
+
+            {/* BOND CATEGORY */}
 
             <label>
               <span>Bond category</span>
@@ -258,81 +372,166 @@ export default function BondAnalyticsPanel({
               <select
                 value={form.bondCategory}
                 onChange={e =>
-                  updateField('bondCategory', e.target.value)
+                  updateField(
+                    'bondCategory',
+                    e.target.value
+                  )
                 }
               >
-                <option value="">Select category</option>
-                <option value="government">Government</option>
-                <option value="corporate">Corporate</option>
+                <option value="">
+                  Select category
+                </option>
+
+                <option value="government">
+                  Government
+                </option>
+
+                <option value="corporate">
+                  Corporate
+                </option>
               </select>
             </label>
 
+            {/* ANNUAL COUPON */}
+
             <label>
               <span>Annual coupon (%)</span>
+
               <input
                 type="number"
                 step="any"
                 min="0"
                 value={form.coupon}
                 placeholder="4.00"
-                onChange={e => updateField('coupon', e.target.value)}
+                onChange={e =>
+                  updateField(
+                    'coupon',
+                    e.target.value
+                  )
+                }
               />
             </label>
+
+            {/* MATURITY */}
 
             <label>
               <span>Maturity date</span>
+
               <input
                 type="date"
                 value={form.maturity}
-                onChange={e => updateField('maturity', e.target.value)}
+                onChange={e =>
+                  updateField(
+                    'maturity',
+                    e.target.value
+                  )
+                }
               />
             </label>
 
+            {/* COUPON FREQUENCY */}
+
             <label>
               <span>Coupon payments per year</span>
+
               <select
                 value={form.freq}
-                onChange={e => updateField('freq', e.target.value)}
+                onChange={e =>
+                  updateField(
+                    'freq',
+                    e.target.value
+                  )
+                }
               >
                 {SUPPORTED_FREQUENCIES.map(freq => (
-                  <option key={freq} value={String(freq)}>
-                    {freq}
+                  <option
+                    key={freq}
+                    value={String(freq)}
+                  >
+                    {freq === 1
+                      ? '1 · Annual'
+                      : freq === 2
+                        ? '2 · Semiannual'
+                        : freq === 4
+                          ? '4 · Quarterly'
+                          : '12 · Monthly'}
                   </option>
                 ))}
               </select>
             </label>
 
+            {/* DAY COUNT */}
+
             <label>
               <span>Day-count convention</span>
+
               <select
                 value={form.dc}
-                onChange={e => updateField('dc', e.target.value)}
+                onChange={e =>
+                  updateField(
+                    'dc',
+                    e.target.value
+                  )
+                }
               >
                 {SUPPORTED_DAY_COUNTS.map(dc => (
-                  <option key={dc} value={dc}>
+                  <option
+                    key={dc}
+                    value={dc}
+                  >
                     {dc}
                   </option>
                 ))}
               </select>
             </label>
 
+            {/* SETTLEMENT */}
+
             <label>
               <span>Settlement date</span>
+
               <input
                 type="date"
                 value={form.settlement}
-                onChange={e => updateField('settlement', e.target.value)}
+                onChange={e =>
+                  updateField(
+                    'settlement',
+                    e.target.value
+                  )
+                }
               />
             </label>
+
           </div>
+
+          {/* SELECTED HOLDING */}
 
           {selected && (
             <div className="selected">
               <strong>{selected.tkr}</strong>
-              <span>Face: {money(Number(selected.qty))}</span>
-              <span>Clean price: {number(Number(selected.price), 3)} per 100</span>
+
+              <span>
+                Face: {money(Number(selected.qty))}
+              </span>
+
+              <span>
+                Clean price:{' '}
+                {number(Number(selected.price), 3)}
+                {' '}per 100
+              </span>
+
+              {selected.bondCategory && (
+                <span>
+                  Category:{' '}
+                  {selected.bondCategory === 'government'
+                    ? 'Government'
+                    : 'Corporate'}
+                </span>
+              )}
             </div>
           )}
+
+          {/* CALCULATE BUTTON */}
 
           <button
             type="button"
@@ -343,43 +542,89 @@ export default function BondAnalyticsPanel({
             Calculate Bond Analytics
           </button>
 
-          {error && <div className="error" role="alert">{error}</div>}
-          {savedMessage && <div className="success">{savedMessage}</div>}
+          {/* STATUS MESSAGES */}
+
+          {error && (
+            <div
+              className="error"
+              role="alert"
+            >
+              {error}
+            </div>
+          )}
+
+          {savedMessage && (
+            <div className="success">
+              {savedMessage}
+            </div>
+          )}
+
+          {/* CALCULATED RESULTS */}
 
           {result && (
             <div className="results">
               <h3>Calculated results</h3>
 
               <div className="metrics">
+
+                <div>
+                  <span>Bond category</span>
+
+                  <strong>
+                    {result.bondCategory === 'government'
+                      ? 'Government'
+                      : 'Corporate'}
+                  </strong>
+                </div>
+
                 <div>
                   <span>Yield to maturity</span>
-                  <strong>{number(result.ytm * 100, 3)}%</strong>
+
+                  <strong>
+                    {number(result.ytm * 100, 3)}%
+                  </strong>
                 </div>
 
                 <div>
                   <span>Modified duration</span>
-                  <strong>{number(result.modDur, 4)} years</strong>
+
+                  <strong>
+                    {number(result.modDur, 4)} years
+                  </strong>
                 </div>
 
                 <div>
                   <span>DV01</span>
-                  <strong>{money(result.dv01)} / bp</strong>
+
+                  <strong>
+                    {money(result.dv01)} / bp
+                  </strong>
                 </div>
 
                 <div>
                   <span>Accrued interest</span>
-                  <strong>{number(result.ai, 4)} per 100</strong>
+
+                  <strong>
+                    {number(result.ai, 4)} per 100
+                  </strong>
                 </div>
 
                 <div>
                   <span>Dirty price</span>
-                  <strong>{number(result.dirtyPx, 4)}</strong>
+
+                  <strong>
+                    {number(result.dirtyPx, 4)}
+                  </strong>
                 </div>
 
                 <div>
                   <span>Dirty market value</span>
-                  <strong>{money(result.totalAmt)}</strong>
+
+                  <strong>
+                    {money(result.totalAmt)}
+                  </strong>
                 </div>
+
               </div>
 
               <button
@@ -394,14 +639,25 @@ export default function BondAnalyticsPanel({
         </>
       )}
 
+      {/* METHODOLOGY */}
+
       <p className="method">
-        For conventional fixed-coupon bonds. Results use the
-        supplied terms and your current entered clean price;
+        For conventional fixed-coupon bonds. Results use
+        your supplied terms and entered clean price;
         they do not retrieve live bond prices. DV01 is
-        calculated for the entered face value. Recalculate
-        after changing the price, settlement date or bond terms.
+        calculated for the entered face value.
+
+        {' '}Government bonds receive the specified
+        interest-rate shock. Corporate bonds receive
+        the interest-rate and credit-spread shocks,
+        using a common modified-duration approximation.
+
+        {' '}Recalculate after changing the bond's
+        price, settlement date, or contractual terms.
         A saved duration is a point-in-time estimate.
       </p>
+
+      {/* STYLES */}
 
       <style jsx>{`
         .bond-panel {
@@ -446,7 +702,10 @@ export default function BondAnalyticsPanel({
 
         .form-grid {
           display: grid;
-          grid-template-columns: repeat(3, minmax(0, 1fr));
+          grid-template-columns: repeat(
+            3,
+            minmax(0, 1fr)
+          );
           gap: 14px;
           margin: 26px 0 20px;
         }
@@ -539,7 +798,10 @@ export default function BondAnalyticsPanel({
 
         .metrics {
           display: grid;
-          grid-template-columns: repeat(3, minmax(0, 1fr));
+          grid-template-columns: repeat(
+            3,
+            minmax(0, 1fr)
+          );
           gap: 12px;
           margin-bottom: 22px;
         }
@@ -556,7 +818,8 @@ export default function BondAnalyticsPanel({
         }
 
         .metrics strong {
-          font: 500 20px "JetBrains Mono", monospace;
+          font: 500 20px
+            "JetBrains Mono", monospace;
           color: #214b3d;
           overflow-wrap: anywhere;
         }
@@ -570,7 +833,10 @@ export default function BondAnalyticsPanel({
         @media (max-width: 800px) {
           .form-grid,
           .metrics {
-            grid-template-columns: repeat(2, minmax(0, 1fr));
+            grid-template-columns: repeat(
+              2,
+              minmax(0, 1fr)
+            );
           }
         }
 
